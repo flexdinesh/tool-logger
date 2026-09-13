@@ -1,15 +1,18 @@
 import { errorMessage } from './context.ts';
 import type { MetadataError } from './context.ts';
-import { appendV2Event } from './log.ts';
-import { promoteV2 } from './state.ts';
+import { createEventLogger } from './log.ts';
 
 type V2HookName = 'execute.before' | 'execute.after';
-type V2Callback = (event: unknown) => void | Promise<void>;
+type V2Callback = (event: unknown) => void;
 const MAX_SESSION_DIRECTORIES = 256;
+
+export type V2Registration = {
+  dispose: () => Promise<void>;
+};
 
 export type V2Context = {
   tool: {
-    hook: (name: V2HookName, callback: V2Callback) => Promise<unknown>;
+    hook: (name: V2HookName, callback: V2Callback) => Promise<V2Registration>;
   };
   session?: {
     get: (input: { sessionID: string }) => Promise<unknown>;
@@ -59,11 +62,10 @@ function boundedSessionGet(context: V2Context, id: string): Promise<unknown> {
 
 async function eventContext(
   context: V2Context,
-  event: unknown,
+  id: string | null,
   directories: Map<string, string>,
 ): Promise<{ cwd: string | null; errors: MetadataError[] }> {
   const fallback = fallbackDirectory(context.location);
-  const id = sessionID(event);
   if (!id || !context.session) return { cwd: fallback, errors: [] };
   const cached = directories.get(id);
   if (cached) return { cwd: cached, errors: [] };
@@ -86,31 +88,31 @@ async function eventContext(
   }
 }
 
-async function log(
-  context: V2Context,
-  directories: Map<string, string>,
-  hook: 'tool.execute.before' | 'tool.execute.after',
-  event: unknown,
-) {
-  try {
-    const details = await eventContext(context, event, directories);
-    appendV2Event(hook, event, details.cwd, details.errors);
-  } catch { /* Telemetry must never affect tool execution. */ }
-}
-
 const plugin = {
   id: 'opencode-tool-logger',
-  async setup(context: V2Context): Promise<void> {
+  async setup(context: V2Context): Promise<() => Promise<void>> {
+    const directories = new Map<string, string>();
+    const logger = createEventLogger();
+    const before = await context.tool.hook('execute.before', (event) => {
+      const id = sessionID(event);
+      logger.appendV2('tool.execute.before', event, () => eventContext(context, id, directories));
+    });
+    let after: V2Registration;
     try {
-      await promoteV2();
-      const directories = new Map<string, string>();
-      await context.tool.hook('execute.before', (event) => log(
-        context, directories, 'tool.execute.before', event,
-      ));
-      await context.tool.hook('execute.after', (event) => log(
-        context, directories, 'tool.execute.after', event,
-      ));
-    } catch { /* Plugin setup must not affect OpenCode. */ }
+      after = await context.tool.hook('execute.after', (event) => {
+        const id = sessionID(event);
+        logger.appendV2('tool.execute.after', event, () => eventContext(context, id, directories));
+      });
+    } catch (error) {
+      try { await before.dispose(); }
+      catch { /* Preserve registration failure. */ }
+      await logger.drain();
+      throw error;
+    }
+    return async () => {
+      await Promise.allSettled([before.dispose(), after.dispose()]);
+      await logger.drain();
+    };
   },
 };
 
