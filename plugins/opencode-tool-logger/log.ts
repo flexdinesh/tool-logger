@@ -45,8 +45,8 @@ function writeRecord(
   const fd = openSync(join(directory, 'opencode-tool-calls.jsonl'), flags, 0o600);
   try {
     if (!fstatSync(fd).isFile()) throw new Error('log destination must be a regular file');
-    // Close the V1 race after opening. A concurrent V2 purge either removes this
-    // descriptor's file or deletes the completed append before activating V2.
+    // Close the V1 race after opening. V2 publishes intent before activation, so
+    // future V1 writes stop without deleting existing history.
     if (suppressV1 && intentExists(directory)) return false;
     if (write(fd, data) !== data.length) throw new Error('incomplete log write');
     fsyncSync(fd);

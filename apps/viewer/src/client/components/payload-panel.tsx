@@ -1,15 +1,19 @@
 import { Check, Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { ToolCall } from "../../model.ts";
+import type { ToolCallDetail } from "../../shared/api.ts";
 import type { PayloadTab } from "../state/viewer-reducer.ts";
 import { Button } from "./ui/button.tsx";
-import { TabsList, TabsTrigger } from "./ui/tabs.tsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs.tsx";
 
 const tabs: { name: PayloadTab; label: string }[] = [
   { name: "input", label: "Input" },
   { name: "output", label: "Result" },
   { name: "raw", label: "Raw events" },
 ];
+
+function isPayloadTab(value: string): value is PayloadTab {
+  return value === "input" || value === "output" || value === "raw";
+}
 
 function CopyPayloadButton({ payload }: { payload: string }) {
   const [label, setLabel] = useState("Copy JSON");
@@ -41,21 +45,19 @@ function CopyPayloadButton({ payload }: { payload: string }) {
 }
 
 export function PayloadPanel({ call, tab, onTabChange }: {
-  call: ToolCall;
+  call: ToolCallDetail;
   tab: PayloadTab;
   onTabChange: (tab: PayloadTab) => void;
 }) {
-  const result = call.harness === "opencode" && call.apiVersion === 1 && call.resultMetadata !== null
-    ? { output: call.output, metadata: call.resultMetadata } : call.output;
-  const value = tab === "input" ? call.input : tab === "output" ? result : { before: call.pre, after: call.post };
-  const payload = tab === "output" && !call.post
-    ? "No matching after-tool event in the current log window."
+  const value = tab === "input" ? call.input : tab === "output" ? call.output : call.native.events;
+  const payload = tab === "output" && call.summary.lifecycle === "awaiting"
+    ? "No matching result event has been observed."
     : JSON.stringify(value, null, 2) ?? "";
   return (
-    <>
+    <Tabs value={tab} onValueChange={(value) => { if (isPayloadTab(value)) onTabChange(value); }}>
       <TabsList className="detail-tabs" aria-label="Call payload">
         {tabs.map(({ name, label }) => (
-          <TabsTrigger key={name} id={`tab-${name}`} aria-selected={tab === name} aria-controls="payload" onClick={() => onTabChange(name)}>
+          <TabsTrigger key={name} id={`tab-${name}`} value={name}>
             {label}
           </TabsTrigger>
         ))}
@@ -64,7 +66,9 @@ export function PayloadPanel({ call, tab, onTabChange }: {
         <span id="payload-label">{tab === "input" ? "TOOL INPUT" : tab === "output" ? "TOOL RESULT" : "ORIGINAL HOOK EVENTS"}</span>
         <CopyPayloadButton payload={payload} />
       </div>
-      <pre id="payload" className="max-h-[58vh] overflow-auto rounded-md border border-border bg-surface-secondary p-4 font-mono text-sm leading-7 text-secondary whitespace-pre-wrap wrap-break-word outline-none focus-visible:ring-2 focus-visible:ring-ring" tabIndex={0} role="tabpanel" aria-labelledby={`tab-${tab}`}>{payload}</pre>
-    </>
+      <TabsContent value={tab} id="payload" className="max-h-[58vh] overflow-auto rounded-md border border-border bg-surface-secondary p-4 font-mono text-sm leading-7 text-secondary whitespace-pre-wrap wrap-break-word" tabIndex={0} aria-labelledby={`tab-${tab}`}>
+        <pre>{payload}</pre>
+      </TabsContent>
+    </Tabs>
   );
 }

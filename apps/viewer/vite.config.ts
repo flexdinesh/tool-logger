@@ -15,7 +15,7 @@ export default defineConfig({
     // Node also allowlists frontend request paths before Vite runs.
     fs: {
       strict: true,
-      allow: [resolve(import.meta.dirname, "src/client"), resolve(import.meta.dirname, "src/model.ts"), resolve(import.meta.dirname, "node_modules"), resolve(import.meta.dirname, "../../node_modules")],
+      allow: [resolve(import.meta.dirname, "src/client"), resolve(import.meta.dirname, "src/shared"), resolve(import.meta.dirname, "node_modules"), resolve(import.meta.dirname, "../../node_modules")],
     },
     allowedHosts: ["localhost", "127.0.0.1"],
   },

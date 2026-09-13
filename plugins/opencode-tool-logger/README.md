@@ -11,5 +11,5 @@ pnpm run link:opencode opencode-tool-logger
 ```
 
 The linker selects `v1.ts` for OpenCode V1 or `v2.ts` for V2. Activating V2
-permanently marks the state directory as V2, removes its existing OpenCode log
-once, and suppresses all later V1 writes. Codex logs are independent.
+permanently marks the state directory as V2, preserves its existing OpenCode log,
+and suppresses all later V1 writes. Codex logs are independent.

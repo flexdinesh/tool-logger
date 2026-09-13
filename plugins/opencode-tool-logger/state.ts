@@ -153,11 +153,6 @@ async function acquirePromotion(directory: string): Promise<boolean> {
   throw new Error('timed out waiting for OpenCode V2 promotion');
 }
 
-function removeLog(directory: string): void {
-  try { unlinkSync(join(directory, 'opencode-tool-calls.jsonl')); }
-  catch (error) { if (errorCode(error) !== 'ENOENT') throw error; }
-}
-
 export async function promoteV2(directory = stateDirectory()): Promise<void> {
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   ensureState(directory);
@@ -170,7 +165,6 @@ export async function promoteV2(directory = stateDirectory()): Promise<void> {
   const lock = markerPath(directory, LOCK);
   try {
     if (v2ActiveExists(directory)) return;
-    removeLog(directory);
     publishMarker(directory, ACTIVE, {
       schema_version: 1, generation: 2, activated_at: new Date().toISOString(),
     });

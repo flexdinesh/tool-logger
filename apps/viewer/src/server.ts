@@ -7,7 +7,8 @@ import { networkInterfaces } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { testDataSnapshot } from "./demo.ts";
-import { readLogs, readSnapshot } from "./logs.ts";
+import { RestApi } from "./server/rest.ts";
+import { LogStore } from "./server/repository/log-store.ts";
 import type { Snapshot } from "./model.ts";
 import type { ViteDevServer } from "vite";
 
@@ -103,10 +104,10 @@ function productionAssets(directory: string) {
 function allowedDevelopmentPath(path: string, viteEnvironment: string): boolean {
   if (["/@vite/client", "/@react-refresh", viteEnvironment].includes(path)) return true;
   if (/^\/node_modules\/\.vite\/deps\/[\w.-]+\.js(?:\.map)?$/.test(path)) return true;
-  if (path !== "/src/model.ts" && !/^\/src\/client\/(?:[\w-]+\/)*[\w.-]+\.(?:tsx?|css|svg|png|jpg|webp|woff2)$/.test(path)) return false;
+  if (path !== "/src/shared/api.ts" && !/^\/src\/client\/(?:[\w-]+\/)*[\w.-]+\.(?:tsx?|css|svg|png|jpg|webp|woff2)$/.test(path)) return false;
   try {
     const real = realpathSync(join(root, path));
-    return real === join(root, "src/model.ts") || real.startsWith(join(root, "src/client") + sep);
+    return real === join(root, "src/shared/api.ts") || real.startsWith(join(root, "src/client") + sep);
   } catch {
     return false;
   }
@@ -120,7 +121,10 @@ export async function createViewer(
   const assets = options.dev ? undefined : productionAssets(options.buildDirectory ?? join(root, "dist"));
   let vite: ViteDevServer | undefined;
   let viteEnvironment = "";
-  let pending: Promise<Snapshot> | undefined;
+  const store = new LogStore(source ? { source } : {});
+  const demoSnapshot: Promise<Snapshot> | undefined = testData ? testDataSnapshot() : undefined;
+  const loadSnapshot = (): Promise<Snapshot> => demoSnapshot ?? store.snapshot();
+  const api = new RestApi(loadSnapshot);
   const server = createServer(async (request, response) => {
     const nonce = randomBytes(18).toString("base64");
     const host = request.headers.host ?? "";
@@ -135,31 +139,18 @@ export async function createViewer(
       response.writeHead(403).end("IP access only");
       return;
     }
-    if (request.method !== "GET") {
-      response.writeHead(405, { Allow: "GET" }).end();
-      return;
-    }
+    let url: URL;
     let path: string;
     try {
-      path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
+      url = new URL(request.url ?? "/", "http://localhost");
+      path = decodeURIComponent(url.pathname);
     } catch {
       response.writeHead(400).end("Invalid URL");
       return;
     }
-    if (path === "/api/logs") {
-      try {
-        pending ??= testData ? testDataSnapshot() : source
-          ? readLogs(source).then((dataset) => ({ harnesses: dataset.missing ? [] : [dataset], demo: false }))
-          : readSnapshot();
-        const snapshot = await pending;
-        response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-        response.end(JSON.stringify(snapshot));
-      } catch (error) {
-        response.writeHead(500, { "Content-Type": "application/json" });
-        response.end(JSON.stringify({ error: error instanceof Error ? error.message : "Unable to read logs" }));
-      } finally {
-        pending = undefined;
-      }
+    if (await api.handle(request, response, url)) return;
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      response.writeHead(405, { Allow: "GET, HEAD" }).end();
       return;
     }
     if (vite) {
@@ -223,7 +214,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be between 1 and 65535");
   const testData = process.argv.includes("--test-data") || process.argv.includes("--demo");
   const dev = process.argv.includes("--dev");
-  const host = process.env.HOST ?? "0.0.0.0";
+  const host = process.env.HOST ?? "127.0.0.1";
   const server = await createViewer({ testData, dev });
   server.on("error", (error) => {
     console.error(`viewer: ${error.message}`);

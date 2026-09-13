@@ -49,8 +49,8 @@ pnpm run link:opencode opencode-tool-logger
 
 The linker detects the installed OpenCode generation and installs one global local
 plugin link. Restart OpenCode after linking. V2 wins when both generations exist:
-its first activation deletes the older `opencode-tool-calls.jsonl` data and
-permanently suppresses V1 writes in that state directory.
+its first activation preserves existing `opencode-tool-calls.jsonl` history and
+permanently suppresses later V1 writes in that state directory.
 
 OpenCode events append to
 `~/.local/state/tool-logger/opencode-tool-calls.jsonl`. The shared
@@ -72,23 +72,32 @@ pnpm --filter viewer build
 pnpm --filter viewer start
 ```
 
-`start` reads available harness logs from the configured state directory. Select
-the harness from the left navigation. For UI development, run
+`start` incrementally reads available harness logs from the configured state
+directory. Select the harness from the left navigation. For UI development, run
 `pnpm --filter viewer dev`; it reads the committed Codex and OpenCode synthetic
 fixtures and rebases their timestamps to the current time. Run
 `pnpm --filter viewer test-data` to serve those fixtures from a production build.
 
-The direct server prints every IPv4 URL:
+The direct server binds to loopback by default:
 
 ```text
 Viewer:
-  lo0: http://127.0.0.1:4317
-  en0: http://192.168.1.20:4317
+  127.0.0.1: http://127.0.0.1:4317
 ```
 
 - Open `http://127.0.0.1:4317` on the same machine.
-- Open `http://<LAN-IP>:4317` from another machine on the same network.
 - Set `PORT=4318` before either start command to change the port.
-- Set `HOST=127.0.0.1` before the direct start command to disable LAN access.
+- Set `HOST=0.0.0.0` for direct LAN access.
+- Set `VIEWER_BIND_ADDRESS=0.0.0.0` for Docker Compose LAN access.
 
-> The viewer shows unredacted tool inputs and results. Only expose it on a trusted network.
+> The viewer shows unredacted tool inputs and results. Enable LAN access only on a trusted network.
+
+## Viewer API
+
+The UI uses the read-only, versioned REST API under `/api/v1`. It queries compact
+tool-call summaries, facets, and metrics, then fetches raw detail only when the
+inspector opens. The server keeps harness files separate and uses a registry of
+harness adapters to project native records into the shared API; adding a harness
+does not constrain its on-disk event format. See
+[`apps/viewer/openapi.yaml`](apps/viewer/openapi.yaml) for the complete OpenAPI 3.1
+contract.

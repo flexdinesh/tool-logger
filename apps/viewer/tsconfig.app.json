@@ -9,5 +9,5 @@
     "types": ["vite/client"],
     "paths": { "@/*": ["./src/client/*"] }
   },
-  "include": ["src/client/**/*.ts", "src/client/**/*.tsx", "src/model.ts"]
+  "include": ["src/client/**/*.ts", "src/client/**/*.tsx", "src/shared/**/*.ts"]
 }

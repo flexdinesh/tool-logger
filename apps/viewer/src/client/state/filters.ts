@@ -1,5 +1,4 @@
-import { callContext, matchesContext } from "../../model.ts";
-import type { HarnessDataset, ToolCall } from "../../model.ts";
+import type { ToolCallFacets } from "../../shared/api.ts";
 
 export type FilterValues = {
   search: string;
@@ -18,6 +17,8 @@ export type FilterOptions = {
   directory: string[];
   repository: string[];
   agent: string[];
+  lifecycle: string[];
+  outcome: string[];
 };
 
 export const emptyFilters: FilterValues = {
@@ -25,42 +26,66 @@ export const emptyFilters: FilterValues = {
   range: "all", directory: "all", repository: "all", agent: "all",
 };
 
-export function filterOptions(dataset: HarnessDataset | undefined): FilterOptions {
-  const calls = dataset?.calls ?? [];
-  const sorted = (values: string[]) => [...new Set(values.filter(Boolean))].sort();
+export const emptyOptions: FilterOptions = {
+  tool: [], session: [], directory: [], repository: [], agent: [], lifecycle: [], outcome: [],
+};
+
+export function filterOptions(facets: ToolCallFacets | undefined): FilterOptions {
+  const values = (buckets: { value: string }[] | undefined) => buckets?.map((bucket) => bucket.value) ?? [];
   return {
-    tool: sorted(calls.map((call) => call.tool)),
-    session: sorted(calls.map((call) => call.session)),
-    directory: sorted(calls.map((call) => callContext(call).directory || "unknown")),
-    repository: sorted(calls.map((call) => callContext(call).root || "unknown")),
-    agent: sorted(calls.map((call) => call.agent)),
+    tool: values(facets?.data.tools), session: values(facets?.data.sessions),
+    directory: values(facets?.data.directories), repository: values(facets?.data.repositories),
+    agent: values(facets?.data.agents), lifecycle: values(facets?.data.lifecycles),
+    outcome: values(facets?.data.outcomes),
   };
 }
 
 export function normalizeFilters(filters: FilterValues, options: FilterOptions): FilterValues {
-  const normalized = {
+  const validStatus = filters.status === "all"
+    || (filters.status.startsWith("lifecycle:") && options.lifecycle.includes(filters.status.slice(10)))
+    || (filters.status.startsWith("outcome:") && options.outcome.includes(filters.status.slice(8)));
+  return {
     ...filters,
-    tool: options.tool.includes(filters.tool) ? filters.tool : "all",
-    session: options.session.includes(filters.session) ? filters.session : "all",
-    directory: options.directory.includes(filters.directory) ? filters.directory : "all",
-    repository: options.repository.includes(filters.repository) ? filters.repository : "all",
-    agent: options.agent.includes(filters.agent) ? filters.agent : "all",
+    status: validStatus ? filters.status : "all",
+    tool: filters.tool === "all" || options.tool.includes(filters.tool) ? filters.tool : "all",
+    session: filters.session === "all" || options.session.includes(filters.session) ? filters.session : "all",
+    directory: filters.directory === "all" || options.directory.includes(filters.directory) ? filters.directory : "all",
+    repository: filters.repository === "all" || options.repository.includes(filters.repository) ? filters.repository : "all",
+    agent: filters.agent === "all" || options.agent.includes(filters.agent) ? filters.agent : "all",
   };
-  return normalized.tool === filters.tool && normalized.session === filters.session
-    && normalized.directory === filters.directory && normalized.repository === filters.repository && normalized.agent === filters.agent
-    ? filters : normalized;
 }
 
-export function filterCalls(calls: ToolCall[], filters: FilterValues, now: number): ToolCall[] {
-  const query = filters.search.toLowerCase().trim();
-  const cutoff = filters.range === "all" ? -Infinity : now - Number(filters.range) * 3600_000;
-  return calls.filter((call) =>
-    (filters.status === "all" || call.status === filters.status)
-    && (filters.tool === "all" || call.tool === filters.tool)
-    && (filters.session === "all" || call.session === filters.session)
-    && (filters.agent === "all" || call.agent === filters.agent)
-    && matchesContext(call, filters.directory, filters.repository)
-    && Date.parse(call.time) >= cutoff
-    && (!query || JSON.stringify(call).toLowerCase().includes(query)),
-  );
+export function queryParameters(filters: FilterValues, now = Date.now()): URLSearchParams {
+  const parameters = new URLSearchParams();
+  const selected = (key: string, value: string) => {
+    if (value !== "all") parameters.set(key, value);
+  };
+  if (filters.search.trim()) parameters.set("q", filters.search.trim());
+  if (filters.status.startsWith("lifecycle:")) parameters.set("lifecycle", filters.status.slice(10));
+  if (filters.status.startsWith("outcome:")) parameters.set("outcome", filters.status.slice(8));
+  selected("tool", filters.tool);
+  selected("session", filters.session);
+  selected("agent", filters.agent);
+  selected("repository", filters.repository);
+  selected("directory", filters.directory);
+  if (filters.range !== "all") parameters.set("since", new Date(now - Number(filters.range) * 3_600_000).toISOString());
+  return parameters;
+}
+
+export function filtersFromUrl(parameters: URLSearchParams): FilterValues {
+  const lifecycleValue = parameters.get("lifecycle");
+  const outcomeValue = parameters.get("outcome");
+  const lifecycle = lifecycleValue === "awaiting" || lifecycleValue === "finished" || lifecycleValue === "result-only"
+    ? lifecycleValue : null;
+  const outcome = outcomeValue === "success" || outcomeValue === "failure" || outcomeValue === "unknown"
+    ? outcomeValue : null;
+  const range = parameters.get("range");
+  return {
+    search: parameters.get("q") ?? "",
+    status: lifecycle ? `lifecycle:${lifecycle}` : outcome ? `outcome:${outcome}` : "all",
+    tool: parameters.get("tool") ?? "all", session: parameters.get("session") ?? "all",
+    range: range === "1" || range === "24" ? range : "all",
+    directory: parameters.get("directory") ?? "all", repository: parameters.get("repository") ?? "all",
+    agent: parameters.get("agent") ?? "all",
+  };
 }

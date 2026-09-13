@@ -169,10 +169,6 @@
   }
 }
 
-body.inspector-open {
-  overflow: hidden;
-}
-
 .activity-bars {
   display: flex;
   align-items: flex-end;

@@ -1,9 +1,10 @@
 export type JsonObject = Record<string, unknown>;
-export type HarnessId = "codex" | "opencode";
+export type HarnessId = string;
 export type CallStatus = "completed" | "failed" | "awaiting";
 
 export type LogRecord = {
   schema_version?: unknown;
+  event_id?: unknown;
   logged_at: string;
   event: JsonObject;
   metadata?: unknown;
@@ -15,7 +16,7 @@ export type LogRecord = {
 export type ToolCall = {
   id: string;
   harness: HarnessId;
-  apiVersion: 1 | 2 | null;
+  apiVersion: string | number | null;
   time: string;
   tool: string;
   session: string;
@@ -37,13 +38,14 @@ export type ToolCall = {
 export type HarnessDataset = {
   harness: HarnessId;
   label: string;
-  apiVersion: 1 | 2 | null;
+  apiVersion: string | number | null;
   calls: ToolCall[];
   source: string;
   missing: boolean;
   truncated: boolean;
   skipped: number;
   totalEvents: number;
+  error: string;
 };
 
 export type Snapshot = {
@@ -107,8 +109,8 @@ export function isLogRecord(value: unknown): value is LogRecord {
 }
 
 function isCall(value: unknown): value is ToolCall {
-  return isObject(value) && (value.harness === "codex" || value.harness === "opencode")
-    && (value.apiVersion === null || value.apiVersion === 1 || value.apiVersion === 2)
+  return isObject(value) && typeof value.harness === "string"
+    && (value.apiVersion === null || typeof value.apiVersion === "string" || typeof value.apiVersion === "number")
     && typeof value.id === "string" && typeof value.time === "string"
     && typeof value.tool === "string" && typeof value.session === "string"
     && typeof value.turn === "string" && typeof value.callId === "string"
@@ -121,11 +123,11 @@ function isCall(value: unknown): value is ToolCall {
 }
 
 function isHarnessDataset(value: unknown): value is HarnessDataset {
-  return isObject(value) && (value.harness === "codex" || value.harness === "opencode")
-    && typeof value.label === "string" && (value.apiVersion === null || value.apiVersion === 1 || value.apiVersion === 2)
+  return isObject(value) && typeof value.harness === "string"
+    && typeof value.label === "string" && (value.apiVersion === null || typeof value.apiVersion === "string" || typeof value.apiVersion === "number")
     && Array.isArray(value.calls) && value.calls.every(isCall) && typeof value.source === "string"
     && typeof value.missing === "boolean" && typeof value.truncated === "boolean"
-    && typeof value.skipped === "number" && typeof value.totalEvents === "number";
+    && typeof value.skipped === "number" && typeof value.totalEvents === "number" && typeof value.error === "string";
 }
 
 export function isSnapshot(value: unknown): value is Snapshot {
