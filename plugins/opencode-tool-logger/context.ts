@@ -1,9 +1,9 @@
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { hostname, release } from 'node:os';
 import { resolve } from 'node:path';
 
 export type MetadataError = { source: string; message: string };
-export type GitRunner = (cwd: string, args: string[], timeout: number) => string;
+export type GitRunner = (cwd: string, args: string[], timeout: number) => Promise<string>;
 
 const GIT_BUDGET_MS = 750;
 const COLLECTOR_VERSION = '0.1.0';
@@ -12,23 +12,26 @@ function message(error: unknown): string {
   return (error instanceof Error ? error.message : String(error)).slice(0, 1024);
 }
 
-const runGit: GitRunner = (cwd, args, timeout) => execFileSync('git', [
-  '--no-optional-locks', '-C', cwd, ...args,
-], {
-  encoding: 'utf8', timeout, killSignal: 'SIGKILL', maxBuffer: 256 * 1024,
-  stdio: ['ignore', 'pipe', 'pipe'],
+const runGit: GitRunner = (cwd, args, timeout) => new Promise((resolve, reject) => {
+  execFile('git', ['--no-optional-locks', '-C', cwd, ...args], {
+    encoding: 'utf8', timeout, killSignal: 'SIGKILL', maxBuffer: 256 * 1024,
+    windowsHide: true,
+  }, (error, stdout) => {
+    if (error) reject(error);
+    else resolve(stdout);
+  });
 });
 
-function gitContext(cwd: string, git: GitRunner) {
+async function gitContext(cwd: string, git: GitRunner) {
   const deadline = performance.now() + GIT_BUDGET_MS;
-  function query(args: string[]): string {
+  function query(args: string[]): Promise<string> {
     const remaining = Math.floor(deadline - performance.now());
-    if (remaining <= 0) throw new Error('Git metadata collection timed out');
+    if (remaining <= 0) return Promise.reject(new Error('Git metadata collection timed out'));
     return git(cwd, args, remaining);
   }
-  const root = query(['rev-parse', '--show-toplevel']).trimEnd();
+  const root = (await query(['rev-parse', '--show-toplevel'])).trimEnd();
   try {
-    const status = query(['status', '--porcelain=v2', '--branch', '-z', '--untracked-files=normal']);
+    const status = await query(['status', '--porcelain=v2', '--branch', '-z', '--untracked-files=normal']);
     const entries = status.split('\0').filter(Boolean);
     const headers = new Map<string, string>();
     let index = 0;
@@ -55,7 +58,7 @@ function gitContext(cwd: string, git: GitRunner) {
   }
 }
 
-export function collectMetadata(
+export async function collectMetadata(
   apiVersion: 1 | 2,
   sessionCwd: string | null,
   initialErrors: MetadataError[] = [],
@@ -67,8 +70,13 @@ export function collectMetadata(
     try { return collect(); }
     catch (error) { errors.push({ source, message: message(error) }); return null; }
   }
+  async function optionalAsync<T>(source: string, collect: () => Promise<T>): Promise<T | null> {
+    try { return await collect(); }
+    catch (error) { errors.push({ source, message: message(error) }); return null; }
+  }
   const hookCwd = optional('hook_cwd', () => process.cwd());
-  const repository = sessionCwd ? optional('git', () => gitContext(sessionCwd, git)) : null;
+  const repository = sessionCwd
+    ? await optionalAsync('git', () => gitContext(sessionCwd, git)) : null;
   const bunVersion = process.versions.bun;
   return {
     collector: {
