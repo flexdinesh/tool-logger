@@ -71,8 +71,10 @@ test('preserves existing bytes and full pre/post events, with silent stdout', as
   assert.deepEqual(added.map((record) => record.event), events);
   for (const record of added) {
     assert.equal(record.schema_version, 2);
+    assert.equal(record.harness, 'codex');
     assert.equal(typeof record.event_id, 'string');
     assert.equal(typeof record.logged_at, 'string');
+    assert.ok(record.hook === 'PreToolUse' || record.hook === 'PostToolUse');
     assert.ok(Number.isFinite(Date.parse(String(record.logged_at))));
   }
 });

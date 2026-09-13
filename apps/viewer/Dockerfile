@@ -19,7 +19,7 @@ ENV NODE_ENV=production \
 
 # Backend remains native TypeScript; React and CSS are bundled frontend assets.
 COPY --from=build /workspace/apps/viewer/package.json ./
-COPY --from=build /workspace/apps/viewer/src/*.ts ./src/
+COPY --from=build /workspace/apps/viewer/src/ ./src/
 COPY --from=build /workspace/apps/viewer/dist/ ./dist/
 
 EXPOSE 4317

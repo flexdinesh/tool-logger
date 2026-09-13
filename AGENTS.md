@@ -2,7 +2,7 @@
 
 - Organize the monorepo as:
   - `plugins/codex-tool-logger/`: Codex plugin that logs Codex tool calls.
-  - `plugins/opencode-tool-logger/`: OpenCode plugin placeholder. OpenCode implementation is out of scope until explicitly requested.
+  - `plugins/opencode-tool-logger/`: OpenCode plugin that logs OpenCode tool calls.
   - `apps/viewer/`: read-only web server and UI for querying and visualizing append-only tool-call logs.
 - Keep plugins self-contained under `plugins/<name>/` and applications under `apps/<name>/`.
 - Keep package scripts local to the package that owns the runnable task.

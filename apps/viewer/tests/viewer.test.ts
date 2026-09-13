@@ -18,9 +18,10 @@ import { test } from "node:test";
 import type { TestContext } from "node:test";
 import { testDataSnapshot, testLogPath, testOpenCodeV1LogPath, testOpenCodeV2LogPath } from "../src/demo.ts";
 import { groupCodexCalls, logPath, readLogs, readSnapshot } from "../src/logs.ts";
-import { callContext, displayPath, isObject, isSnapshot, matchesContext, recordContext, repositoryLabel } from "../src/model.ts";
+import { callContext, displayPath, isObject, matchesContext, recordContext, repositoryLabel } from "../src/model.ts";
 import type { LogRecord } from "../src/model.ts";
 import { browserUrl, createViewer, interfaceUrls, openBrowser, shouldOpenBrowser } from "../src/server.ts";
+import { parseHarnessList, parseToolCallPage } from "../src/shared/api.ts";
 import { appendEvent } from '../../../plugins/codex-tool-logger/scripts/log-tool-call.ts';
 
 function fixture(t: TestContext) {
@@ -95,14 +96,14 @@ test("committed OpenCode V2 data preserves identifiers and explicit execution st
   assert.equal(snapshot.calls.find((call) => call.callId === "oc-v2-call-3")?.status, "awaiting");
 });
 
-test("OpenCode V2 defensively supersedes mixed V1 records", async (t) => {
+test("OpenCode preserves mixed V1 and V2 history", async (t) => {
   const f = fixture(t);
   const mixed = readFileSync(testOpenCodeV1LogPath, "utf8") + readFileSync(testOpenCodeV2LogPath, "utf8");
   writeFileSync(f.path, mixed);
   const snapshot = await readLogs(f.path, "opencode");
   assert.equal(snapshot.apiVersion, 2);
-  assert.ok(snapshot.calls.every((call) => call.apiVersion === 2));
-  assert.equal(snapshot.totalEvents, 5);
+  assert.deepEqual([...new Set(snapshot.calls.map((call) => call.apiVersion))].sort(), [1, 2]);
+  assert.equal(snapshot.totalEvents, 8);
 });
 
 test("test-data timestamps rebase together without changing the fixture", async () => {
@@ -142,7 +143,7 @@ test("prefers Codex logs and falls back to legacy logs without modifying either"
   assert.equal(readFileSync(legacy, "utf8"), "legacy\n");
 });
 
-test("snapshot includes only readable harness sources in alphabetical order", async (t) => {
+test("snapshot reports every harness source in alphabetical order", async (t) => {
   const f = fixture(t);
   writeFileSync(f.path, record());
   const opencode = join(f.directory, "opencode-tool-calls.jsonl");
@@ -151,8 +152,9 @@ test("snapshot includes only readable harness sources in alphabetical order", as
   assert.deepEqual(both.harnesses.map((dataset) => dataset.label), ["Codex", "OpenCode"]);
   rmSync(opencode);
   symlinkSync(join(f.directory, "missing-target"), opencode);
-  const codexOnly = await readSnapshot(f.directory);
-  assert.deepEqual(codexOnly.harnesses.map((dataset) => dataset.harness), ["codex"]);
+  const withUnreadable = await readSnapshot(f.directory);
+  assert.deepEqual(withUnreadable.harnesses.map((dataset) => dataset.harness), ["codex", "opencode"]);
+  assert.match(withUnreadable.harnesses[1]?.error ?? "", /symbolic link|ELOOP/i);
 });
 
 test("lists every IPv4 interface as a reachable viewer URL", () => {
@@ -413,23 +415,21 @@ test("HTTP serves the app, browser JavaScript, live data, and read-only routes",
   const javascript = await client.text();
   assert.match(javascript, /Call explorer/);
   assert.doesNotMatch(javascript, /import type/);
-  const empty: unknown = await (await fetch(`${base}/api/logs`)).json();
-  assert.ok(isSnapshot(empty));
-  assert.equal(empty.homeDirectory, undefined);
-  assert.deepEqual(empty.harnesses, []);
+  const empty = parseHarnessList(await (await fetch(`${base}/api/v1/harnesses`)).json());
+  assert.deepEqual(empty.data, []);
+  assert.equal(empty.sourceHealth.find((source) => source.harness === "codex")?.status, "missing");
   writeFileSync(f.path, record());
-  const updated: unknown = await (await fetch(`${base}/api/logs`)).json();
-  assert.ok(isSnapshot(updated));
-  assert.equal(updated.harnesses[0]?.calls.length, 1);
+  const updated = parseToolCallPage(await (await fetch(`${base}/api/v1/harnesses/codex/tool-calls`)).json());
+  assert.equal(updated.data.length, 1);
   assert.equal(
-    (await fetch(`${base}/api/logs`, { method: "POST" })).status,
+    (await fetch(`${base}/api/v1/harnesses`, { method: "POST" })).status,
     405,
   );
   assert.equal((await fetch(`${base}/package.json`)).status, 404);
   const foreignHost = await new Promise<number | undefined>(
     (resolve, reject) => {
       const req = request(
-        `${base}/api/logs`,
+        `${base}/api/v1/harnesses`,
         { headers: { Host: "untrusted.example" } },
         (response) => {
           response.resume();
@@ -442,7 +442,7 @@ test("HTTP serves the app, browser JavaScript, live data, and read-only routes",
   );
   assert.equal(foreignHost, 403);
   const ipHost = await new Promise<number | undefined>((resolve, reject) => {
-    const req = request(`${base}/api/logs`, { headers: { Host: "192.168.1.12:4317" } }, (response) => {
+    const req = request(`${base}/api/v1/harnesses`, { headers: { Host: "192.168.1.12:4317" } }, (response) => {
       response.resume();
       resolve(response.statusCode);
     });
@@ -523,15 +523,18 @@ test("development transforms React with fresh CSP nonces and blocks backend file
   assert.match(client.headers.get("content-type") ?? "", /javascript/);
   assert.equal((await fetch(`${base}/@vite/client`)).status, 200);
   assert.equal((await fetch(`${base}/@react-refresh`)).status, 200);
-  const snapshot: unknown = await (await fetch(`${base}/api/logs`)).json();
-  assert.ok(isSnapshot(snapshot));
-  assert.equal(snapshot.harnesses.find((dataset) => dataset.harness === "codex")?.calls.length, 8);
-  assert.equal(snapshot.harnesses.find((dataset) => dataset.harness === "opencode")?.calls.length, 3);
-  assert.equal(snapshot.demo, true);
+  const harnesses = parseHarnessList(await (await fetch(`${base}/api/v1/harnesses`)).json());
+  assert.deepEqual(harnesses.data.map((dataset) => dataset.id), ["codex", "opencode"]);
+  assert.equal(harnesses.demo, true);
+  const codex = parseToolCallPage(await (await fetch(`${base}/api/v1/harnesses/codex/tool-calls`)).json());
+  const opencode = parseToolCallPage(await (await fetch(`${base}/api/v1/harnesses/opencode/tool-calls`)).json());
+  assert.equal(codex.data.length, 8);
+  assert.equal(opencode.data.length, 3);
+  assert.equal((await fetch(`${base}/src/shared/api.ts`)).status, 200);
   for (const path of ["/src/server.ts", "/src/logs.ts?raw", "/src/demo.ts", "/package.json", "/vite.config.ts", "/tests/viewer.test.ts", "/.env", "/@fs/etc/passwd", "/src/client/%2e%2e%2fserver.ts", "/node_modules/.vite/deps/_metadata.json"]) {
     assert.equal((await fetch(`${base}${path}`)).status, 404, path);
   }
-  assert.equal((await fetch(`${base}/src/model.ts`, { method: "POST" })).status, 405);
+  assert.equal((await fetch(`${base}/src/shared/api.ts`, { method: "POST" })).status, 405);
   for (const origin of ["http://untrusted.example", "http://localhost:1234"]) {
     await assert.rejects(new Promise<void>((resolve, reject) => {
       const req = request(`${base}/`, {

@@ -46,6 +46,8 @@ export function appendEvent(
     schema_version: 2,
     event_id: randomUUID(),
     logged_at: loggedAt,
+    harness: 'codex',
+    hook: event.hook_event_name,
     event,
     metadata,
   }) + '\n');

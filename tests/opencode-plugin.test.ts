@@ -165,21 +165,23 @@ test('V2 bounds stalled session lookup and still records the event', async (t) =
   assert.match(JSON.stringify(metadata.errors), /session lookup timed out/);
 });
 
-test('V2 promotion purges V1 once, preserves Codex, and permanently suppresses V1', async (t) => {
+test('V2 promotion preserves V1 history and permanently suppresses later V1 writes', async (t) => {
   const f = fixture(t);
   mkdirSync(f.directory, { recursive: true });
   appendV1Event('tool.execute.before', { callID: 'old' }, { args: {} }, f.temp, f.directory);
+  const original = readFileSync(f.log, 'utf8');
   const codex = join(f.directory, 'codex-tool-calls.jsonl');
   writeFileSync(codex, 'codex stays\n');
   await promoteV2(f.directory);
-  assert.equal(existsSync(f.log), false);
+  assert.equal(readFileSync(f.log, 'utf8'), original);
   assert.equal(readFileSync(codex, 'utf8'), 'codex stays\n');
   assert.ok(existsSync(join(f.directory, 'opencode-v2-intent.json')));
   assert.ok(existsSync(join(f.directory, 'opencode-v2-active.json')));
   assert.equal(appendV1Event('tool.execute.after', { callID: 'late' }, {}, f.temp, f.directory), false);
-  assert.equal(existsSync(f.log), false);
+  assert.equal(readFileSync(f.log, 'utf8'), original);
   appendV2Event('tool.execute.before', { id: 'v2' }, f.temp, [], f.directory);
   const afterActivation = readFileSync(f.log, 'utf8');
+  assert.deepEqual(records(f.log).map((value) => value.api_version), [1, 2]);
   await promoteV2(f.directory);
   assert.equal(readFileSync(f.log, 'utf8'), afterActivation);
 });
@@ -219,7 +221,7 @@ test('concurrent and interrupted V2 promotions converge on one active generation
   await Promise.all(Array.from({ length: 20 }, () => promoteV2(f.directory)));
   assert.ok(existsSync(join(f.directory, 'opencode-v2-active.json')));
   assert.equal(existsSync(lock), false);
-  assert.equal(existsSync(f.log), false);
+  assert.equal(readFileSync(f.log, 'utf8'), 'old V1 data\n');
 });
 
 test('large concurrent process appends remain complete JSONL records', async (t) => {

@@ -2,11 +2,15 @@
   "name": "viewer",
   "private": true,
   "type": "module",
-  "engines": { "node": "26.x", "pnpm": "11.x" },
+  "engines": {
+    "node": "26.x",
+    "pnpm": "11.x"
+  },
   "scripts": {
     "start": "node src/server.ts",
     "dev": "node --watch src/server.ts --dev --test-data",
     "build": "vite build",
+    "openapi:check": "redocly lint openapi.yaml",
     "test-data": "pnpm build && node src/server.ts --test-data",
     "demo": "pnpm build && node src/server.ts --demo",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.app.json",
@@ -16,6 +20,8 @@
     "test:install": "playwright install chromium"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "1.1.23",
+    "@radix-ui/react-tabs": "1.1.21",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "0.544.0",
@@ -25,6 +31,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
+    "@redocly/cli": "2.51.2",
     "@tailwindcss/vite": "4.3.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",

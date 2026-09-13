@@ -1,0 +1,1204 @@
+openapi: 3.1.0
+info:
+  title: Tool Logger Viewer API
+  version: 1.0.0
+  description: |
+    Read-only REST API for querying append-only tool-call logs.
+
+    Collection results are ordered newest first by `observedAt`, then `id`.
+    Cursors are opaque and are valid only with the normalized filters that created
+    them. Clients must not parse or construct cursors.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /
+    description: Same-origin viewer server
+tags:
+  - name: Harnesses
+    description: Discovered log producers and their viewer capabilities.
+  - name: Tool calls
+    description: Search, inspect, and aggregate recorded tool calls.
+  - name: Health
+    description: Viewer process and log-source diagnostics.
+security: []
+
+paths:
+  /api/v1/harnesses:
+    get:
+      operationId: listHarnesses
+      tags: [Harnesses]
+      summary: List discovered harnesses
+      description: |
+        Returns readable harness metadata, UI capabilities, and source health.
+      parameters:
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Harnesses and their current source health
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HarnessList'
+              examples:
+                installed:
+                  summary: Codex and mixed-generation OpenCode logs
+                  value:
+                    data:
+                      - id: codex
+                        label: Codex
+                        apiVersions: []
+                        capabilities:
+                          filters:
+                            - id: tool
+                              label: Tool
+                              type: multi-select
+                              queryParameter: tool
+                          columns:
+                            - id: observedAt
+                              label: Time
+                              defaultVisible: true
+                              sortable: false
+                            - id: tool
+                              label: Tool
+                              defaultVisible: true
+                              sortable: false
+                          outcomeSemantics:
+                            success: Explicit successful result
+                            failure: Explicit failed result
+                            unknown: Hook completed without a harness outcome
+                          detailFields:
+                            - id: git
+                              label: Git snapshot
+                              path: native.attributes.git
+                              format: json
+                      - id: opencode
+                        label: OpenCode
+                        apiVersions: [1, 2]
+                        capabilities:
+                          filters:
+                            - id: agent
+                              label: Agent
+                              type: multi-select
+                              queryParameter: agent
+                          columns:
+                            - id: agentId
+                              label: Agent
+                              defaultVisible: true
+                              sortable: false
+                          outcomeSemantics:
+                            success: Result reported without an error
+                            failure: Result reported with an error
+                            unknown: No conclusive result observed
+                          detailFields: []
+                    sourceHealth:
+                      - harness: codex
+                        status: healthy
+                        apiVersions: []
+                        sourceLabel: codex-tool-calls.jsonl
+                        skippedRecords: 0
+                        lastObservedAt: '2026-09-13T01:42:18.410Z'
+                      - harness: opencode
+                        status: healthy
+                        sourceLabel: opencode-tool-calls.jsonl
+                        apiVersions: [1, 2]
+                        skippedRecords: 1
+                        lastObservedAt: '2026-09-13T01:41:02.004Z'
+                    demo: false
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /api/v1/harnesses/{harness}/tool-calls:
+    get:
+      operationId: listToolCalls
+      tags: [Tool calls]
+      summary: Query tool calls
+      description: |
+        Returns compact summaries. Input, output, and native events are available
+        from the detail resource. Repeated filter parameters use OR within one
+        field and AND across different fields.
+      parameters:
+        - $ref: '#/components/parameters/Harness'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Lifecycle'
+        - $ref: '#/components/parameters/Outcome'
+        - $ref: '#/components/parameters/Tool'
+        - $ref: '#/components/parameters/Session'
+        - $ref: '#/components/parameters/Agent'
+        - $ref: '#/components/parameters/Repository'
+        - $ref: '#/components/parameters/Directory'
+        - $ref: '#/components/parameters/Since'
+        - $ref: '#/components/parameters/Until'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Matching tool-call summaries
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolCallPage'
+              examples:
+                codex:
+                  summary: Codex calls
+                  value:
+                    data:
+                      - id: codex:call_01JZQW8BN49WJQ2EHTZKXFJX2K
+                        harness: codex
+                        harnessApiVersion: null
+                        tool: exec_command
+                        observedAt: '2026-09-13T01:42:18.410Z'
+                        startedAt: '2026-09-13T01:42:18.410Z'
+                        finishedAt: '2026-09-13T01:42:18.931Z'
+                        lifecycle: finished
+                        outcome: unknown
+                        durationMs: 521
+                        sessionId: 01JZQVXEPYRQ7NYW2K6T7RPDMT
+                        agentId: null
+                        directory: /home/dee/workspace/tool-logger/main
+                        repository: /home/dee/workspace/tool-logger/main
+                        inputSummary: pnpm check
+                        attributes:
+                          turnId: 17
+                    page:
+                      nextCursor: eyJvYnNlcnZlZEF0IjoiMjAyNi0wOS0xM1QwMTo0MjoxOC40MTBaIiwiaWQiOiJjb2RleCJ9
+                      hasMore: true
+                    sourceHealth:
+                      harness: codex
+                      status: healthy
+                      apiVersions: []
+                      sourceLabel: codex-tool-calls.jsonl
+                      skippedRecords: 0
+                      lastObservedAt: '2026-09-13T01:42:18.931Z'
+                opencode:
+                  summary: OpenCode V2 result
+                  value:
+                    data:
+                      - id: opencode:tool_01JZQWFF32X8TDN7TTEZ7VK4N2
+                        harness: opencode
+                        harnessApiVersion: 2
+                        tool: bash
+                        observedAt: '2026-09-13T01:41:02.004Z'
+                        startedAt: '2026-09-13T01:41:01.230Z'
+                        finishedAt: '2026-09-13T01:41:02.004Z'
+                        lifecycle: finished
+                        outcome: success
+                        durationMs: 774
+                        sessionId: ses_01JZQW9K8F6JV3TTGVTAVS62EF
+                        agentId: build
+                        directory: /work/project
+                        repository: /work/project
+                        inputSummary: pnpm check
+                        attributes:
+                          title: Run tests
+                    page:
+                      nextCursor: null
+                      hasMore: false
+                    sourceHealth:
+                      harness: opencode
+                      status: healthy
+                      sourceLabel: opencode-tool-calls.jsonl
+                      apiVersions: [1, 2]
+                      skippedRecords: 0
+                      lastObservedAt: '2026-09-13T01:41:02.004Z'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /api/v1/harnesses/{harness}/tool-calls/{callId}:
+    get:
+      operationId: getToolCall
+      tags: [Tool calls]
+      summary: Get tool-call detail
+      description: Returns projected fields plus the unmodified harness-native records.
+      parameters:
+        - $ref: '#/components/parameters/Harness'
+        - $ref: '#/components/parameters/CallId'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Tool-call detail
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolCallDetail'
+              examples:
+                codex:
+                  summary: Codex call with native pre/post records
+                  value:
+                    summary:
+                      id: codex:call_01JZQW8BN49WJQ2EHTZKXFJX2K
+                      harness: codex
+                      harnessApiVersion: null
+                      tool: exec_command
+                      observedAt: '2026-09-13T01:42:18.410Z'
+                      startedAt: '2026-09-13T01:42:18.410Z'
+                      finishedAt: '2026-09-13T01:42:18.931Z'
+                      lifecycle: finished
+                      outcome: unknown
+                      durationMs: 521
+                      sessionId: 01JZQVXEPYRQ7NYW2K6T7RPDMT
+                      agentId: null
+                      directory: /home/dee/workspace/tool-logger/main
+                      repository: /home/dee/workspace/tool-logger/main
+                      inputSummary: pnpm check
+                      attributes:
+                        turnId: 17
+                    input:
+                      cmd: pnpm check
+                    output:
+                      output: 43 tests passed
+                      exit_code: 0
+                    native:
+                      attributes:
+                        correlationId: call_01JZQW8BN49WJQ2EHTZKXFJX2K
+                      events:
+                        - schema_version: 1
+                          logged_at: '2026-09-13T01:42:18.410Z'
+                          harness: codex
+                          hook: PreToolUse
+                          event:
+                            tool_name: exec_command
+                            tool_input:
+                              cmd: pnpm check
+                        - schema_version: 1
+                          logged_at: '2026-09-13T01:42:18.931Z'
+                          harness: codex
+                          hook: PostToolUse
+                          event:
+                            tool_name: exec_command
+                            tool_output:
+                              output: 43 tests passed
+                              exit_code: 0
+                opencodeLegacy:
+                  summary: Legacy OpenCode V1 call preserved alongside V2 data
+                  value:
+                    summary:
+                      id: opencode:legacy:10482
+                      harness: opencode
+                      harnessApiVersion: 1
+                      tool: bash
+                      observedAt: '2026-09-12T23:11:30.115Z'
+                      startedAt: '2026-09-12T23:11:30.115Z'
+                      finishedAt: null
+                      lifecycle: awaiting
+                      outcome: unknown
+                      durationMs: null
+                      sessionId: ses_legacy
+                      agentId: null
+                      directory: /work/legacy
+                      repository: null
+                      inputSummary: git status --short
+                      attributes: {}
+                    input:
+                      command: git status --short
+                    output: null
+                    native:
+                      attributes:
+                        sourceGeneration: v1
+                      events:
+                        - api_version: 1
+                          logged_at: '2026-09-12T23:11:30.115Z'
+                          event:
+                            tool: bash
+                            input:
+                              command: git status --short
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /api/v1/harnesses/{harness}/tool-call-facets:
+    get:
+      operationId: getToolCallFacets
+      tags: [Tool calls]
+      summary: Get filter facets
+      description: |
+        Returns counts for the current query. Filters are applied to every facet
+        except that facet's own filter, allowing clients to present useful choices.
+      parameters:
+        - $ref: '#/components/parameters/Harness'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Lifecycle'
+        - $ref: '#/components/parameters/Outcome'
+        - $ref: '#/components/parameters/Tool'
+        - $ref: '#/components/parameters/Session'
+        - $ref: '#/components/parameters/Agent'
+        - $ref: '#/components/parameters/Repository'
+        - $ref: '#/components/parameters/Directory'
+        - $ref: '#/components/parameters/Since'
+        - $ref: '#/components/parameters/Until'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Available facet values and counts
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolCallFacets'
+              example:
+                data:
+                  tools:
+                    - value: exec_command
+                      label: exec_command
+                      count: 28
+                  sessions:
+                    - value: 01JZQVXEPYRQ7NYW2K6T7RPDMT
+                      label: 01JZQVXEPYRQ7NYW2K6T7RPDMT
+                      count: 14
+                  agents: []
+                  repositories:
+                    - value: /home/dee/workspace/tool-logger/main
+                      label: tool-logger
+                      count: 28
+                  directories:
+                    - value: /home/dee/workspace/tool-logger/main
+                      label: /home/dee/workspace/tool-logger/main
+                      count: 28
+                  lifecycles:
+                    - value: finished
+                      label: Finished
+                      count: 27
+                  outcomes:
+                    - value: unknown
+                      label: Unknown
+                      count: 28
+                sourceHealth:
+                  harness: codex
+                  status: healthy
+                  apiVersions: []
+                  sourceLabel: codex-tool-calls.jsonl
+                  skippedRecords: 0
+                  lastObservedAt: '2026-09-13T01:42:18.931Z'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /api/v1/harnesses/{harness}/tool-call-metrics:
+    get:
+      operationId: getToolCallMetrics
+      tags: [Tool calls]
+      summary: Get aggregate tool-call metrics
+      description: Aggregates all calls matching the supplied filters and time range.
+      parameters:
+        - $ref: '#/components/parameters/Harness'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Lifecycle'
+        - $ref: '#/components/parameters/Outcome'
+        - $ref: '#/components/parameters/Tool'
+        - $ref: '#/components/parameters/Session'
+        - $ref: '#/components/parameters/Agent'
+        - $ref: '#/components/parameters/Repository'
+        - $ref: '#/components/parameters/Directory'
+        - $ref: '#/components/parameters/Since'
+        - $ref: '#/components/parameters/Until'
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Aggregate metrics
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToolCallMetrics'
+              example:
+                data:
+                  totalCalls: 28
+                  completedCalls: 27
+                  awaitingCalls: 1
+                  successCalls: 0
+                  failureCalls: 0
+                  unknownCalls: 28
+                  averageDurationMs: 412.75
+                  failureRate: null
+                  window:
+                    since: '2026-09-12T01:42:18.931Z'
+                    until: '2026-09-13T01:42:18.931Z'
+                  activity:
+                    - start: '2026-09-13T01:00:00.000Z'
+                      count: 28
+                  toolUsage:
+                    - tool: exec_command
+                      count: 28
+                sourceHealth:
+                  harness: codex
+                  status: healthy
+                  apiVersions: []
+                  sourceLabel: codex-tool-calls.jsonl
+                  skippedRecords: 0
+                  lastObservedAt: '2026-09-13T01:42:18.931Z'
+        '304':
+          $ref: '#/components/responses/NotModified'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /healthz:
+    get:
+      operationId: getHealth
+      tags: [Health]
+      summary: Check server and source health
+      responses:
+        '200':
+          description: Server is ready; sources may be degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example:
+                status: ok
+                checkedAt: '2026-09-13T01:42:19.000Z'
+                sources:
+                  - harness: codex
+                    status: healthy
+                    apiVersions: []
+                    sourceLabel: codex-tool-calls.jsonl
+                    skippedRecords: 0
+                    lastObservedAt: '2026-09-13T01:42:18.931Z'
+                  - harness: opencode
+                    status: missing
+                    sourceLabel: opencode-tool-calls.jsonl
+                    apiVersions: []
+                    skippedRecords: 0
+                    lastObservedAt: null
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        default:
+          $ref: '#/components/responses/Problem'
+
+components:
+  parameters:
+    Harness:
+      name: harness
+      in: path
+      required: true
+      description: Open harness identifier from the harness list.
+      schema:
+        type: string
+        minLength: 1
+      examples:
+        codex:
+          value: codex
+        opencode:
+          value: opencode
+    CallId:
+      name: callId
+      in: path
+      required: true
+      description: Opaque call identifier exactly as returned by the collection.
+      schema:
+        type: string
+        minLength: 1
+    Search:
+      name: q
+      in: query
+      description: Case-insensitive text search over adapter-declared searchable fields.
+      schema:
+        type: string
+        maxLength: 500
+    Lifecycle:
+      name: lifecycle
+      in: query
+      description: Lifecycle states. Repeat to select more than one.
+      explode: true
+      schema:
+        type: array
+        maxItems: 3
+        items:
+          $ref: '#/components/schemas/Lifecycle'
+    Outcome:
+      name: outcome
+      in: query
+      description: Outcomes. Repeat to select more than one.
+      explode: true
+      schema:
+        type: array
+        maxItems: 3
+        items:
+          $ref: '#/components/schemas/Outcome'
+    Tool:
+      name: tool
+      in: query
+      description: Exact tool names. Repeat to select more than one.
+      explode: true
+      schema:
+        type: array
+        maxItems: 100
+        items:
+          type: string
+          minLength: 1
+    Session:
+      name: session
+      in: query
+      description: Exact session identifiers. Repeat to select more than one.
+      explode: true
+      schema:
+        type: array
+        maxItems: 100
+        items:
+          type: string
+          minLength: 1
+    Agent:
+      name: agent
+      in: query
+      description: Exact agent identifiers. Repeat to select more than one.
+      explode: true
+      schema:
+        type: array
+        maxItems: 100
+        items:
+          type: string
+          minLength: 1
+    Repository:
+      name: repository
+      in: query
+      description: Exact repository roots. Repeat to select more than one.
+      explode: true
+      schema:
+        type: array
+        maxItems: 100
+        items:
+          type: string
+          minLength: 1
+    Directory:
+      name: directory
+      in: query
+      description: Exact working directories. Repeat to select more than one.
+      explode: true
+      schema:
+        type: array
+        maxItems: 100
+        items:
+          type: string
+          minLength: 1
+    Since:
+      name: since
+      in: query
+      description: Include calls observed at or after this RFC 3339 instant.
+      schema:
+        type: string
+        format: date-time
+    Until:
+      name: until
+      in: query
+      description: Include calls observed before this RFC 3339 instant.
+      schema:
+        type: string
+        format: date-time
+    Limit:
+      name: limit
+      in: query
+      description: Maximum summaries returned.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 100
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque cursor from a previous page using identical filters.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 4096
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      description: Entity tag from an earlier response.
+      schema:
+        type: string
+
+  headers:
+    ETag:
+      description: Validator for the selected source watermark and normalized query.
+      schema:
+        type: string
+      example: '"6eb97a53f924"'
+
+  responses:
+    NotModified:
+      description: Representation is unchanged.
+      headers:
+        ETag:
+          $ref: '#/components/headers/ETag'
+    BadRequest:
+      description: Invalid query parameter or cursor.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://tool-logger.local/problems/invalid-query
+            title: Invalid query
+            status: 400
+            detail: since must be an RFC 3339 timestamp
+            instance: /api/v1/harnesses/codex/tool-calls?since=yesterday
+            errors:
+              - field: since
+                message: Must be an RFC 3339 timestamp
+    NotFound:
+      description: Harness or call does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://tool-logger.local/problems/not-found
+            title: Not found
+            status: 404
+            detail: Harness was not found
+            instance: /api/v1/harnesses/unknown/tool-calls
+    InternalError:
+      description: Unexpected server failure.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://tool-logger.local/problems/internal-error
+            title: Internal server error
+            status: 500
+            detail: The request could not be completed
+    MethodNotAllowed:
+      description: HTTP method is not supported by this resource.
+      headers:
+        Allow:
+          description: Supported methods for this resource.
+          schema:
+            type: string
+          example: GET, HEAD
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: https://tool-logger.local/problems/method-not-allowed
+            title: Method not allowed
+            status: 405
+            detail: This resource only supports GET and HEAD
+    Problem:
+      description: Error response.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    HarnessList:
+      type: object
+      additionalProperties: false
+      required: [data, sourceHealth, demo]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/HarnessDescriptor'
+        sourceHealth:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceHealth'
+        demo:
+          type: boolean
+          description: True when responses use bundled synthetic data.
+    HarnessDescriptor:
+      type: object
+      additionalProperties: false
+      required: [id, label, apiVersions, capabilities]
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: Stable, open harness identifier.
+        label:
+          type: string
+          minLength: 1
+        apiVersions:
+          type: array
+          description: Log API generations currently present in this source.
+          items:
+            $ref: '#/components/schemas/ApiVersion'
+          uniqueItems: true
+        capabilities:
+          $ref: '#/components/schemas/HarnessCapabilities'
+    HarnessCapabilities:
+      type: object
+      additionalProperties: false
+      required: [filters, columns, outcomeSemantics, detailFields]
+      properties:
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterCapability'
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnCapability'
+        outcomeSemantics:
+          $ref: '#/components/schemas/OutcomeSemantics'
+        detailFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetailFieldCapability'
+    FilterCapability:
+      type: object
+      additionalProperties: false
+      required: [id, label, type, queryParameter]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        label:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [text, single-select, multi-select, datetime]
+        queryParameter:
+          type: string
+          minLength: 1
+    ColumnCapability:
+      type: object
+      additionalProperties: false
+      required: [id, label, defaultVisible, sortable]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        label:
+          type: string
+          minLength: 1
+        defaultVisible:
+          type: boolean
+        sortable:
+          type: boolean
+          description: Reserved for future ordering support; false in API v1.
+    OutcomeSemantics:
+      type: object
+      additionalProperties: false
+      required: [success, failure, unknown]
+      properties:
+        success:
+          type: string
+        failure:
+          type: string
+        unknown:
+          type: string
+    DetailFieldCapability:
+      type: object
+      additionalProperties: false
+      required: [id, label, path, format]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        label:
+          type: string
+          minLength: 1
+        path:
+          type: string
+          minLength: 1
+          description: Dot-separated path within ToolCallDetail.
+        format:
+          type: string
+          enum: [text, code, json, timestamp, duration]
+    ToolCallPage:
+      type: object
+      additionalProperties: false
+      required: [data, page, sourceHealth]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCallSummary'
+        page:
+          $ref: '#/components/schemas/Page'
+        sourceHealth:
+          $ref: '#/components/schemas/SourceHealth'
+    Page:
+      type: object
+      additionalProperties: false
+      required: [nextCursor, hasMore]
+      properties:
+        nextCursor:
+          type: [string, 'null']
+          description: Cursor for the next page, or null at the end.
+        hasMore:
+          type: boolean
+    ToolCallSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - harness
+        - harnessApiVersion
+        - tool
+        - observedAt
+        - startedAt
+        - finishedAt
+        - lifecycle
+        - outcome
+        - durationMs
+        - sessionId
+        - agentId
+        - directory
+        - repository
+        - inputSummary
+        - attributes
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: Opaque and stable within the current append-only source.
+        harness:
+          type: string
+          minLength: 1
+        harnessApiVersion:
+          oneOf:
+            - $ref: '#/components/schemas/ApiVersion'
+            - type: 'null'
+        tool:
+          type: string
+          minLength: 1
+        observedAt:
+          type: string
+          format: date-time
+          description: Earliest time at which this call became observable.
+        startedAt:
+          type: [string, 'null']
+          format: date-time
+        finishedAt:
+          type: [string, 'null']
+          format: date-time
+        lifecycle:
+          $ref: '#/components/schemas/Lifecycle'
+        outcome:
+          $ref: '#/components/schemas/Outcome'
+        durationMs:
+          type: [integer, 'null']
+          minimum: 0
+        sessionId:
+          type: [string, 'null']
+        agentId:
+          type: [string, 'null']
+        directory:
+          type: [string, 'null']
+        repository:
+          type: [string, 'null']
+        inputSummary:
+          type: string
+          description: Compact adapter-derived input text safe for collection display.
+        attributes:
+          type: object
+          description: Additive, harness-specific summary attributes.
+          additionalProperties: true
+    ToolCallDetail:
+      type: object
+      additionalProperties: false
+      required: [summary, input, output, native]
+      properties:
+        summary:
+          $ref: '#/components/schemas/ToolCallSummary'
+        input:
+          description: Harness-native tool input; null when not observed.
+        output:
+          description: Harness-native tool output; null when not observed.
+        native:
+          $ref: '#/components/schemas/NativeCallData'
+    NativeCallData:
+      type: object
+      additionalProperties: false
+      required: [attributes, events]
+      properties:
+        attributes:
+          type: object
+          description: Harness adapter metadata not projected into the summary.
+          additionalProperties: true
+        events:
+          type: array
+          description: Original parsed JSONL records in source order.
+          items:
+            type: object
+            additionalProperties: true
+    ToolCallFacets:
+      type: object
+      additionalProperties: false
+      required: [data, sourceHealth]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [tools, sessions, agents, repositories, directories, lifecycles, outcomes]
+          properties:
+            tools:
+              $ref: '#/components/schemas/FacetBuckets'
+            sessions:
+              $ref: '#/components/schemas/FacetBuckets'
+            agents:
+              $ref: '#/components/schemas/FacetBuckets'
+            repositories:
+              $ref: '#/components/schemas/FacetBuckets'
+            directories:
+              $ref: '#/components/schemas/FacetBuckets'
+            lifecycles:
+              $ref: '#/components/schemas/FacetBuckets'
+            outcomes:
+              $ref: '#/components/schemas/FacetBuckets'
+        sourceHealth:
+          $ref: '#/components/schemas/SourceHealth'
+    FacetBuckets:
+      type: array
+      items:
+        $ref: '#/components/schemas/FacetBucket'
+    FacetBucket:
+      type: object
+      additionalProperties: false
+      required: [value, label, count]
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+    ToolCallMetrics:
+      type: object
+      additionalProperties: false
+      required: [data, sourceHealth]
+      properties:
+        data:
+          $ref: '#/components/schemas/MetricsData'
+        sourceHealth:
+          $ref: '#/components/schemas/SourceHealth'
+    MetricsData:
+      type: object
+      additionalProperties: false
+      required:
+        - totalCalls
+        - completedCalls
+        - awaitingCalls
+        - successCalls
+        - failureCalls
+        - unknownCalls
+        - averageDurationMs
+        - failureRate
+        - window
+        - activity
+        - toolUsage
+      properties:
+        totalCalls:
+          type: integer
+          minimum: 0
+        completedCalls:
+          type: integer
+          minimum: 0
+        awaitingCalls:
+          type: integer
+          minimum: 0
+        successCalls:
+          type: integer
+          minimum: 0
+        failureCalls:
+          type: integer
+          minimum: 0
+        unknownCalls:
+          type: integer
+          minimum: 0
+        averageDurationMs:
+          type: [number, 'null']
+          minimum: 0
+        failureRate:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 1
+          description: Failures divided by calls with known outcomes.
+        window:
+          $ref: '#/components/schemas/MetricWindow'
+        activity:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityBucket'
+        toolUsage:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolUsageBucket'
+    MetricWindow:
+      type: object
+      additionalProperties: false
+      required: [since, until]
+      properties:
+        since:
+          type: [string, 'null']
+          format: date-time
+        until:
+          type: [string, 'null']
+          format: date-time
+    ActivityBucket:
+      type: object
+      additionalProperties: false
+      required: [start, count]
+      properties:
+        start:
+          type: string
+          format: date-time
+        count:
+          type: integer
+          minimum: 0
+    ToolUsageBucket:
+      type: object
+      additionalProperties: false
+      required: [tool, count]
+      properties:
+        tool:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+    SourceHealth:
+      type: object
+      additionalProperties: false
+      required: [harness, status, sourceLabel, apiVersions, skippedRecords, lastObservedAt]
+      properties:
+        harness:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum: [healthy, missing, partial, unreadable]
+        sourceLabel:
+          type: string
+          description: Display-safe source label without an absolute server path.
+        apiVersions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiVersion'
+          uniqueItems: true
+        skippedRecords:
+          type: integer
+          minimum: 0
+        lastObservedAt:
+          type: [string, 'null']
+          format: date-time
+        message:
+          type: string
+          description: Safe diagnostic without an absolute source path.
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, checkedAt, sources]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checkedAt:
+          type: string
+          format: date-time
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceHealth'
+    Lifecycle:
+      type: string
+      enum: [awaiting, finished, result-only]
+      description: |
+        `awaiting` has no result event; `finished` has start and result events;
+        `result-only` has a result event with no observed start.
+    Outcome:
+      type: string
+      enum: [success, failure, unknown]
+      description: Harness adapter interpretation, independent of lifecycle.
+    ApiVersion:
+      oneOf:
+        - type: integer
+        - type: string
+      description: Harness-owned log API generation.
+    Problem:
+      type: object
+      description: RFC 9457 problem detail.
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+      additionalProperties: true
+    FieldError:
+      type: object
+      additionalProperties: false
+      required: [field, message]
+      properties:
+        field:
+          type: string
+        message:
+          type: string
