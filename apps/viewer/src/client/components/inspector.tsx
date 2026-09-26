@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import type { RefObject } from "react";
 import { isObject } from "../../shared/api.ts";
 import type { DetailFieldCapability, HarnessDescriptor, ToolCallDetail } from "../../shared/api.ts";
@@ -35,8 +35,22 @@ function formatField(call: ToolCallDetail, field: DetailFieldCapability): string
     ? String(value) : "Not recorded";
 }
 
-export function Inspector({ call, descriptor, tab, onTabChange, returnFocusRef, searchRef, onClose }: {
-  call: ToolCallDetail;
+const desktopQuery = "(min-width: 70rem)";
+
+function subscribeToViewport(onChange: () => void) {
+  const query = window.matchMedia(desktopQuery);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function isDesktop() {
+  return window.matchMedia(desktopQuery).matches;
+}
+
+export function Inspector({ call, loading, error, descriptor, tab, onTabChange, returnFocusRef, searchRef, onClose }: {
+  call: ToolCallDetail | undefined;
+  loading: boolean;
+  error: string;
   descriptor: HarnessDescriptor | undefined;
   tab: PayloadTab;
   onTabChange: (tab: PayloadTab) => void;
@@ -45,20 +59,24 @@ export function Inspector({ call, descriptor, tab, onTabChange, returnFocusRef, 
   onClose: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  const summary = call.summary;
-  const identifiers: [string, string][] = [
+  const docked = useSyncExternalStore(subscribeToViewport, isDesktop, () => false);
+  const summary = call?.summary;
+  const identifiers: [string, string][] = call && summary ? [
     ["Harness API", summary.harnessApiVersion === null ? "Not recorded" : String(summary.harnessApiVersion)],
     ["Call ID", attribute(call, "callId") || "Not recorded"],
     ["Turn", attribute(call, "turnId") || "Not recorded"],
     ["Message", attribute(call, "messageId") || "Not recorded"],
     ["Agent", summary.agentId || "Not recorded"],
     ...descriptor?.capabilities.detailFields.map((field): [string, string] => [field.label, formatField(call, field)]) ?? [],
-  ];
+  ] : [];
   return (
-    <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Sheet open modal={!docked} onOpenChange={(open) => { if (!open) onClose(); }}>
       <SheetContent
         id="inspector"
+        docked={docked}
         aria-label="Tool call details"
+        aria-describedby={undefined}
+        onInteractOutside={(event) => { if (docked) event.preventDefault(); }}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           closeRef.current?.focus();
@@ -71,26 +89,32 @@ export function Inspector({ call, descriptor, tab, onTabChange, returnFocusRef, 
         }}
       >
         <SheetHeader className="inspector-heading mb-4">
-          <span className="eyebrow text-xs font-semibold tracking-widest text-secondary">CALL DETAILS</span>
-          <Button ref={closeRef} id="close" variant="ghost" size="icon" className="size-10" aria-label="Close call details" onClick={onClose}><X aria-hidden="true" /></Button>
+          <SheetTitle id="detail-tool" className="text-xl font-semibold tracking-tight wrap-break-word">{summary?.tool ?? "Call details"}</SheetTitle>
+          <Button ref={closeRef} id="close" variant="ghost" size="icon" aria-label="Close call details" onClick={onClose}><X aria-hidden="true" /></Button>
         </SheetHeader>
-        <SheetTitle id="detail-tool" className="mb-3 text-xl font-semibold tracking-tight wrap-break-word">{summary.tool}</SheetTitle>
+        {call && summary ? <>
         <div id="detail-status"><CallStatus call={summary} descriptor={descriptor} /></div>
-        <dl id="metadata" className="my-6 grid grid-cols-[88px_minmax(0,1fr)] gap-3 border-y border-border py-5 text-sm">
+        <dl id="metadata" className="my-4 grid grid-cols-[72px_minmax(0,1fr)] gap-2 border-y border-border py-3 text-xs">
           <MetadataFields values={[
+            ["Harness", descriptor?.label ?? summary.harness],
             ["Time", new Date(summary.observedAt).toLocaleString()],
             ["Duration", duration(summary.durationMs)],
+          ]} />
+        </dl>
+        <PayloadPanel call={call} tab={tab} onTabChange={onTabChange} />
+        <details className="detail-context"><summary>Context and identifiers</summary>
+          <dl className="my-3 grid grid-cols-[88px_minmax(0,1fr)] gap-2 text-xs"><MetadataFields values={[
             ["Session", summary.sessionId || "Not recorded"],
             ...identifiers,
             ["Directory", summary.directory || "Not recorded"],
             ["Repository", repositoryName(summary.repository) || "Not recorded"],
             ["Branch", attribute(call, "branch") || "Not recorded"],
-          ]} />
-        </dl>
+          ]} /></dl>
+        </details>
         <GitSnapshots call={call} />
-        <PayloadPanel call={call} tab={tab} onTabChange={onTabChange} />
         <p className="detail-note text-xs leading-5 text-muted">{descriptor?.capabilities.outcomeSemantics[summary.outcome]
           ?? "Inspect native events for harness-specific result details."}</p>
+        </> : loading ? <div className="calls-loading" role="status" aria-label="Loading call details"><div /><div /><div /></div> : <p role="alert" className="text-sm text-destructive">{error || "Call details unavailable."} Close and reopen this call to retry.</p>}
       </SheetContent>
     </Sheet>
   );

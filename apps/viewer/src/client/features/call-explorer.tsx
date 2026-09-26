@@ -15,7 +15,8 @@ export function CallExplorer() {
 
   useEffect(() => {
     function focusSearch(event: KeyboardEvent) {
-      if (event.key === "/" && !selectedCallId && !(event.target instanceof HTMLInputElement)) {
+      const editing = event.target instanceof HTMLElement && (event.target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName));
+      if (event.key === "/" && !selectedCallId && !editing) {
         event.preventDefault();
         searchRef.current?.focus();
       }
@@ -25,18 +26,17 @@ export function CallExplorer() {
   }, [selectedCallId, searchRef]);
 
   return (
-    <section className="panel calls-panel overflow-hidden rounded-lg border border-border bg-surface" aria-labelledby="calls-heading">
-      <div className="calls-heading flex items-center justify-between gap-4 px-4 pt-5 sm:px-6">
+    <section className="calls-panel" aria-labelledby="calls-heading">
+      <div className="calls-heading">
         <div>
-          <h2 id="calls-heading" className="flex items-center gap-2 text-lg font-semibold">Call explorer <Badge id="shown-count">{number(calls.length)}</Badge></h2>
-          <p className="mt-2 text-sm text-muted">Inspect normalized call data, native payloads, identifiers, and lifecycle events.</p>
+          <h2 id="calls-heading" className="flex items-center gap-2 text-lg font-semibold">Recent calls <Badge id="shown-count">{number(calls.length)}</Badge></h2>
         </div>
         <span id="updated" className="updated hidden text-xs text-muted sm:block" aria-live="polite">{updated}</span>
       </div>
       <Filters filters={filters} options={options} descriptor={descriptor}
         searchRef={searchRef} onChange={changeFilter} onClear={resetFilters} />
-      <CallTable calls={calls} descriptor={descriptor} selected={selectedCallId} onOpen={openCall} />
-      <CallEmptyState loaded={Boolean(harnessList) && !loading} descriptor={descriptor} count={calls.length} total={metrics?.data.totalCalls ?? 0} />
+      <CallTable calls={calls} descriptor={descriptor} selected={selectedCallId} onOpen={openCall} loading={loading} />
+      <CallEmptyState loaded={Boolean(harnessList) && !loading} descriptor={descriptor} count={calls.length} total={metrics?.data.totalCalls ?? 0} hasFilters={Object.entries(filters).some(([key, value]) => key === "search" ? Boolean(value.trim()) : value !== "all")} />
       <CallTableFooter health={sourceHealth} total={metrics?.data.totalCalls ?? 0}
         hasMore={hasMore} loadingMore={loadingMore} onMore={showMore} />
     </section>

@@ -1,41 +1,22 @@
 import type { ToolCallMetrics } from "../../shared/api.ts";
-import { clock } from "../format.ts";
-import { Card } from "./ui/card.tsx";
-
-function ActivityChart({ metrics }: { metrics: ToolCallMetrics | undefined }) {
-  const activity = metrics?.data.activity ?? [];
-  const peak = Math.max(1, ...activity.map((entry) => entry.count));
-  const first = activity[0]?.start;
-  const last = activity.at(-1)?.start;
-  return (
-    <Card className="activity-panel p-5">
-      <div className="panel-heading flex items-center justify-between"><h2 className="text-base font-semibold">Activity over time</h2><span className="legend flex items-center gap-1.5 text-xs text-muted"><i className="size-2 rounded-sm bg-chart-strong" /> Tool calls</span></div>
-      <div id="activity" className="activity-bars" role="img" aria-label={activity.length
-        ? `${metrics?.data.totalCalls ?? 0} calls between ${clock(first ?? "")} and ${clock(last ?? "")}`
-        : "No calls in the selected window"}>
-        {activity.map((entry) => <div key={entry.start} className="activity-bar" style={{ height: `${(entry.count / peak) * 100}%` }} title={`${clock(entry.start)} · ${entry.count} call${entry.count === 1 ? "" : "s"}`} />)}
-      </div>
-      <div className="chart-axis mt-3 flex justify-between text-xs text-muted"><span id="chart-from">{first ? clock(first) : "No events yet"}</span><span id="chart-to">{last ? clock(last) : "Now"}</span></div>
-    </Card>
-  );
-}
-
-function ToolUsageChart({ metrics, onTool }: { metrics: ToolCallMetrics | undefined; onTool: (tool: string) => void }) {
-  const tools = metrics?.data.toolUsage ?? [];
-  const top = tools.slice(0, 4);
-  return (
-    <Card className="tools-panel p-5">
-      <div className="panel-heading flex items-center justify-between"><h2 className="text-base font-semibold">Tools in use</h2><span id="tool-count" className="text-xs text-muted">{tools.length} tools</span></div>
-      <div id="tools" className="tool-bars mt-5 flex flex-col gap-3">{top.map(({ tool, count }) => <button key={tool} className="tool-row grid grid-cols-[minmax(95px,1fr)_1fr_25px] items-center gap-3 text-left text-sm text-secondary outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring" type="button" title={`Filter by ${tool}`} onClick={() => onTool(tool)}><span className="tool-name truncate">{tool}</span><span className="tool-track h-1.5 overflow-hidden rounded-sm bg-surface-secondary"><span className="tool-fill block h-full rounded-sm bg-chart" style={{ width: `${(count / Math.max(1, top[0]?.count ?? 1)) * 100}%` }} /></span><span className="text-right text-xs tabular-nums">{count}</span></button>)}{!top.length && <p className="text-sm text-muted">Tools appear here as calls arrive.</p>}</div>
-    </Card>
-  );
-}
+import { calendarDate, clock, duration } from "../format.ts";
 
 export function Charts({ metrics, onTool }: { metrics: ToolCallMetrics | undefined; onTool: (tool: string) => void }) {
-  return (
-    <section className="charts mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(240px,1fr)]" aria-label="Activity overview">
-      <ActivityChart metrics={metrics} />
-      <ToolUsageChart metrics={metrics} onTool={onTool} />
-    </section>
-  );
+  const activity = metrics?.data.activity ?? [];
+  const peak = Math.max(1, ...activity.map((entry) => entry.count));
+  const first = metrics?.data.window.since ?? activity[0]?.start;
+  const last = metrics?.data.window.until ?? activity.at(-1)?.start;
+  return <section className="activity-panel" aria-label="Activity overview">
+    <div className="trace-heading"><h2>Activity trace</h2><div className="trace-legend"><span><i className="codex-color" />Codex</span><span><i className="opencode-color" />OpenCode</span></div></div>
+    <div id="activity" className="activity-bars" role="img" aria-label={activity.length ? String(metrics?.data.totalCalls ?? 0) + " calls between " + new Date(first ?? "").toLocaleString() + " and " + new Date(last ?? "").toLocaleString() : "No calls in the selected window"}>
+      {activity.map((entry, index) => <div key={entry.start} className="activity-bin" title={new Date(entry.start).toLocaleString() + " – " + new Date(activity[index + 1]?.start ?? last ?? entry.start).toLocaleString() + " · " + entry.count + " calls"}>
+        <span className="activity-bar codex-color" style={{ transform: "translateY(-" + String(((entry.harnesses?.opencode ?? 0) / peak) * 100) + "%) scaleY(" + String((entry.harnesses?.codex ?? entry.count - (entry.harnesses?.opencode ?? 0)) / peak) + ")" }} />
+        <span className="activity-bar opencode-color" style={{ transform: "scaleY(" + String((entry.harnesses?.opencode ?? 0) / peak) + ")" }} />
+      </div>)}
+    </div>
+    <div className="chart-axis"><span id="chart-from">{first ? calendarDate(first) + " · " + clock(first) : "No events yet"}</span><span id="chart-to">{last ? calendarDate(last) + " · " + clock(last) : "Now"}</span></div>
+    <details className="tool-breakdown"><summary>Tool breakdown <span id="tool-count">· {metrics?.data.toolUsage.length ?? 0} tools</span></summary>
+      <div className="tool-breakdown-content"><p>Average duration <strong id="stat-duration">{duration(metrics?.data.averageDurationMs ?? null)}</strong></p><div id="tools">{metrics?.data.toolUsage.map(({ tool, count }) => <button key={tool} type="button" onClick={() => onTool(tool)} title={"Filter by " + tool}>{tool}<span>{count}</span></button>)}</div></div>
+    </details>
+  </section>;
 }

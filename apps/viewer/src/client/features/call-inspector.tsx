@@ -2,14 +2,15 @@ import { Inspector } from "../components/inspector.tsx";
 import { useViewerActions, useViewerFocus, useViewerState } from "../state/viewer-context.ts";
 
 export function CallInspector() {
-  const { selectedCall, descriptor, payloadTab } = useViewerState();
+  const { selectedCall, selectedCallId, detailLoading, error, harnessList, payloadTab } = useViewerState();
   const { closeInspector, selectPayloadTab } = useViewerActions();
   const { returnFocusRef, searchRef } = useViewerFocus();
-  if (!selectedCall) return null;
+  if (!selectedCallId) return null;
 
   return (
     <Inspector
-      key={selectedCall.summary.id} call={selectedCall} descriptor={descriptor}
+      key={selectedCallId} call={selectedCall} loading={detailLoading} error={error}
+      descriptor={harnessList?.data.find((harness) => harness.id === selectedCall?.summary.harness)}
       tab={payloadTab} onTabChange={selectPayloadTab} onClose={closeInspector}
       returnFocusRef={returnFocusRef} searchRef={searchRef}
     />

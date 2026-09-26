@@ -19,7 +19,7 @@ test("spacing, radii, and semantic colors use constrained tokens", () => {
   );
   assert.deepEqual(
     [...css.matchAll(/--shape-radius-[\w-]+:\s*([^;]+);/g)].map((match) => match[1]),
-    ["0.25rem", "0.5rem", "0.75rem"],
+    ["0.25rem", "0.375rem", "0.5rem"],
   );
   for (const token of [
     "--color-app-bg", "--color-bg-surface", "--color-text-primary", "--color-text-secondary",
@@ -27,6 +27,6 @@ test("spacing, radii, and semantic colors use constrained tokens", () => {
     "--color-action-hover", "--color-state-success", "--color-state-warning", "--color-state-destructive",
   ]) assert.match(css, new RegExp(`${token}:`));
 
-  const root = css.match(/:root\s*\{[\s\S]*?\}/)?.[0] ?? "";
-  assert.doesNotMatch(css.replace(root, ""), /#[\da-f]{3,8}\b/i);
+  const components = css.replace(/:root(?:\[data-theme=light\])?\s*\{[\s\S]*?\}/g, "");
+  assert.doesNotMatch(components, /#[\da-f]{3,8}\b/i);
 });

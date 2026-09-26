@@ -1,0 +1,216 @@
+{
+  "common": "Create one production-quality high-fidelity desktop UI concept screenshot for Tool Logger, a local read-only developer app for scanning coding-agent tool history and opening native inputs and results. Flat full-bleed landscape 1536x1024, no device frame, browser window decoration, poster, marketing hero, perspective, concept title, or caption inside the UI. Render the requested direction as a coherent real app with realistic type and alignment. It is Operate mode: task clarity and readable evidence lead.\n\nShared constraints from the user: compact status/header/title sections, modest 28–34px desktop controls, 12–14px UI text, page headings22px max, no persistent decorative sidebar, no oversized metric cards, no thick outlines, all control/section borders are subtle1px, no heavy dashboard perimeter frame or shadow, no patterned canvas, no decorative gradients or glow. Use crisp chart bars with no outlines. There must be All / Codex / OpenCode harness filtering in the main workspace, combined view visible. Keep charts and health as a compact overview. Preserve explicit outcome labels: result presence alone is not success. Use real-library style fine stroke icons. Light backgrounds can use quiet subtle neutral section tone; dark backgrounds must have readable contrast.\n\nActual product content must be recognizable, not filler:\nSmall brand Tool Logger, TEST DATA badge, Local logs, Live updates control.\nMain title Tool activity, subtitle optional if space.\nScope All harnesses / Codex / OpenCode, All harnesses selected.\nOverview:11 calls,9 results observed,2 awaiting result,1 failed,Source health Healthy. Do not turn these into hero-sized statistics. A short actual Activity trace and labeled series Codex/OpenCode; no invented huge activity counts. Synthetic fixture timestamps span Feb1 and Sep26, so sparse bars and explicit dates are valid. For grouped concepts, date group headings can be Sep26 and Feb1.\nSearch placeholder Search tools, commands, or content..., All time dropdown, Filters control. Recent calls11.\nUse at least these five precise fixture rows:\nwrite | /home/fixture-user/work/tool-logger/notes.txt | OpenCode | Awaiting result | — | Sep26 12:44PM.\nread | /missing.txt | OpenCode | Failed |300ms | Sep26 12:43PM.\nbash | pnpm check | OpenCode | Succeeded |2.4s | Sep26 12:42PM.\nBash | pwd | Codex | Result only | — | Feb1 03:45PM.\nread_file | notes.txt | Codex | Awaiting result | — | Feb1 03:35PM.\nAny visible selected call is bash /pnpm check, explicitly Succeeded, OpenCode,2.4s. Inspector title bash, command pnpm check, metadata above, tabs Overview/Input/Result/Events, Input selected. Native JSON text shown accurately:\n{\n  \"command\": \"pnpm check\",\n  \"description\": \"Run workspace checks\"\n}\nNo invented tool executions, extra endpoints, models, customers or performance claims. Use monospaced type for commands, paths, code and durations, readable sans for interface text. Labels and markers must accompany colors. Use green for success/healthy, amber for awaiting, red for failure, neutral for Result only independently of the direction's brand accent. Input/output panel may be light or dark to suit its world; keep code readable. Leave unused canvas intentional and calm. Show a detailed real dashboard first viewport, enough content to choose the structural direction.",
+  "options": [
+    {
+      "id": "chronicle",
+      "label": "1. Chronicle",
+      "lineage": "Debugger event chronology",
+      "thesis": "Follow calls along a chronological spine, with evidence beside them.",
+      "palette": [
+        "#122033",
+        "#1b2b42",
+        "#f3bd70",
+        "#e7eef8"
+      ],
+      "materials": [
+        "Midnight blue",
+        "Amber selection",
+        "Thin timeline rules"
+      ],
+      "viewport": "A compact trace over a timestamp lane, grouped event rows and a docked inspector.",
+      "risk": "Less efficient than columns when comparing many durations.",
+      "direction": "Chronicle. Dark midnight blue #122033, raised sections #1b2b42, warm amber selection #f3bd70, near-white text #e7eef8. No terminal-green aesthetic and no glow. Layout is a chronological event journal, NOT a conventional table: a narrow timestamp lane on the left, a very fine vertical spine with tiny outcome markers, and generous horizontal call rows grouped under Sep26 and Feb1 headings. Main workspace is about1000px wide; right docked native inspector about500px. Each event line features its command/path then small inline tool, harness, state and duration. Compact scope tabs and search above journal, short activity trace and metrics integrated in one horizontal overview. Selected bash row has a quiet amber tint, matching active scope and Inspector Input tab. Use a readable humanist UI sans, not all monospace. Calm dense evidence aesthetic. Small fine timeline dots are functional status anchors, not decoration.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-chronicle.png"
+    },
+    {
+      "id": "daylight",
+      "label": "2. Daylight",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Professional desktop data grids",
+      "thesis": "Scan a clear table with a quiet overview and stable inspector.",
+      "palette": [
+        "#ffffff",
+        "#f4f7f8",
+        "#143c49",
+        "#128c9c"
+      ],
+      "materials": [
+        "White surfaces",
+        "Petrol accents",
+        "Fine gray rules"
+      ],
+      "viewport": "Small brand row, inline metrics and trace, broad call table, white detail pane.",
+      "risk": "Familiar structure; distinction comes from typography and proportions.",
+      "direction": "Daylight. White #ffffff and very pale slate #f4f7f8, deep petrol text #143c49, fresh teal action #128c9c. Crisp modern humane desktop grid, no blue hero strip. One44px brand bar, one compact toolbar combining title and scope, one72px overview containing short summary text on left and a shallow sparse trace at right. Below, dominant broad sortable-looking call table, fine neutral rules, each row54px. Right fixed320px white inspector separated by a thin rule, code area very pale slate and teal syntax. Columns Tool/input,Harness,State,Duration,Time are truly aligned. Tool name and command are on separate lines. Selected row very pale cyan. Current scope is a small teal filled segment with white text. The product should feel composed, fresh and comfortably readable at desktop scale. Typography looks like a contemporary workhorse humanist sans, 13px body,20px heading.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-daylight.png"
+    },
+    {
+      "id": "graphite",
+      "label": "3. Graphite",
+      "lineage": "Developer console workspaces",
+      "thesis": "Keep calls dominant in a dark workspace, with details in a bottom dock.",
+      "palette": [
+        "#17191d",
+        "#22262c",
+        "#c7e780",
+        "#e9edf2"
+      ],
+      "materials": [
+        "Graphite panels",
+        "Soft lime selection",
+        "Low contrast chrome"
+      ],
+      "viewport": "A dark wide table below a low trace, with native input in a bottom dock.",
+      "risk": "Dark surfaces need careful contrast during long reading sessions.",
+      "direction": "Graphite. Neutral charcoal #17191d, panels #22262c, warm-white text #e9edf2, soft lime accent #c7e780. No blue tint, neon glow, terminal gimmicks or green-on-black body text. Full-width event table is the focus, not a side panel: title and tiny scope tabs form one low toolbar, short pale-lime/gray trace above rows and inline metrics. Call table spans full width. Native inspector is a bottom dock about260px tall across the whole app, like a professional debug console, with a left metadata portion and wide right monospaced JSON area. Tab headings along dock top, Input selected with lime underline. Selected bash row gets subtle charcoal-green tint. Fine gray dividers, very compact muted outline fields, lime Filters action only small. Use general UI sans for labels and mono for code. Strong horizontal layering with clean thin rules.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-graphite.png"
+    },
+    {
+      "id": "sessions",
+      "label": "4. Session Desk",
+      "lineage": "Session-oriented development tools",
+      "thesis": "Narrow a session, then scan its calls and inspect evidence.",
+      "palette": [
+        "#f7f9fd",
+        "#ffffff",
+        "#4568d7",
+        "#22324c"
+      ],
+      "materials": [
+        "Cool white",
+        "Cornflower selection",
+        "Fine section separators"
+      ],
+      "viewport": "A contextual session index beside the calls, with harness scope in the main toolbar.",
+      "risk": "Session grouping adds a browsing step for global activity.",
+      "direction": "Session Desk. Cool white #f7f9fd, white surfaces, cornflower blue #4568d7 and navy ink #22324c. Main dashboard is an efficient three-column content workspace, NOT an app navigation sidebar. A compact global header/title/scope/overview at top spans all width. Below that top overview, a180px contextual Session index on left is headed Sessions and contains query choices 'All sessions', 'Sep26 · OpenCode' and 'Feb1 · Codex' clearly labeled synthetic grouped runs. It is a data filter list, no Home/Dashboard/Settings links. Middle dominant720px call table with search and All time/Filters, right400px docked white inspector. Main harness filter still sits above calls and says All harnesses/Codex/OpenCode. Selected All sessions row has very pale blue fill; selected call has pale cornflower fill. Keep tiny counts plausible from the visible fixture or omit counts on session options. Source health healthy and compact metrics remain visible top. Quiet neutral thin borders, clear column alignment, small blue active segments. The user sees a scoped developer workspace rather than a marketing dashboard.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-sessions.png"
+    },
+    {
+      "id": "parallel",
+      "label": "5. Parallel",
+      "lineage": "Comparison and diff tools",
+      "thesis": "Compare both harnesses side by side while retaining native outcomes.",
+      "palette": [
+        "#ffffff",
+        "#f5f7f7",
+        "#168a86",
+        "#bb704b"
+      ],
+      "materials": [
+        "Clean white",
+        "Teal Codex lane",
+        "Copper OpenCode lane"
+      ],
+      "viewport": "Two labeled harness lanes under one overview, with selected evidence opening below.",
+      "risk": "Side-by-side lanes make global chronological scanning harder.",
+      "direction": "Parallel. White #ffffff with light neutral #f5f7f7, teal #168a86 for Codex series, copper #bb704b for OpenCode series, dark slate text. A comparison workspace with two equal-width content lanes beneath compact global title/scope/overview and one shared search toolbar. Codex lane left, OpenCode lane right, each clearly named with a small colored dot and very short sparse mini trace without large tinted headers. All harnesses selected in global tabs. Left lane contains Bash/pwd/Result only and read_file/notes.txt/Awaiting result. Right lane contains write/path/Awaiting result, read/missing.txt/Failed, bash/pnpm check/Succeeded. The rows are aligned clean list rows with commands primary and native outcome labels. A selected bash call opens one broad bottom evidence strip across the combined view, headed bash/OpenCode/2.4s, small Input tabs, a shallow native JSON panel. Neutral1px lane divider, no thick outlining or nested cards. Compact combined metrics include11calls,9results,2awaiting,1failed,Healthy sources. Colors identify harnesses only; result states remain proper green/amber/red/neutral. This should immediately read as a practical comparison tool.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-parallel.png"
+    },
+    {
+      "id": "ledger",
+      "label": "6. Ledger",
+      "lineage": "Inspection records and audit ledgers",
+      "thesis": "Give commands, timestamps and outcomes the clarity of a well-set record.",
+      "palette": [
+        "#faf8f4",
+        "#ffffff",
+        "#263c34",
+        "#aa5f38"
+      ],
+      "materials": [
+        "Warm neutral canvas",
+        "Forest ink",
+        "Copper action"
+      ],
+      "viewport": "A quiet ledger with expanded evidence immediately beneath the selected row.",
+      "risk": "Warmth can feel subdued; command hierarchy must carry the character.",
+      "direction": "Ledger. Warm very light neutral #faf8f4, white #ffffff, deep forest ink #263c34, restrained copper #aa5f38. Precise typography-led inspection record, NOT rustic paper texture, vintage poster or serif marketing page. Use an understated humanist UI sans with slightly more deliberate table typography. Full-width neat ruled ledger rows, dates in a narrow left column, commands in a broad middle, harness/state/duration right. A compact text-based overview runs across top:11calls /9observed /2awaiting /1failed /Healthy. Sparse trace is a short low horizontal strip beneath title. Copper selected scope small filled control, fields compact. Native inspector expands INLINE directly beneath the selected bash row, spanning ledger width as a pale neutral region with tabs, metadata and lightly tinted JSON. Do not show a right sidebar or bottom dock. The selected row plus evidence are anchored in the chronological table. Fine warm-gray rules only. White or warm neutral surface end to end. State labels remain green/amber/red/neutral; copper signals action only. Calm, articulate, compact and exceptionally well aligned.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-ledger.png"
+    },
+    {
+      "id": "dock",
+      "label": "7. Dock",
+      "lineage": "Browser developer tools",
+      "thesis": "Inspect rich payloads below a broad call list without narrowing it.",
+      "palette": [
+        "#eef1f5",
+        "#ffffff",
+        "#325bc5",
+        "#1a2438"
+      ],
+      "materials": [
+        "Cool gray chrome",
+        "Blue selections",
+        "White content panes"
+      ],
+      "viewport": "A broad table above a resizable-looking bottom inspector with metadata and payload.",
+      "risk": "The inspector takes vertical space from the call list.",
+      "direction": "Dock. Light cool gray chrome #eef1f5, white table surfaces, precise blue action #325bc5, navy text #1a2438. Familiar compact desktop pane language with thin gray rules and4px control corners. Calls occupy the full width in the upper roughly two-thirds, native details dock across the bottom third. Main page is NOT centered or surrounded by background card margins. Compact44px brand/local/live bar. Title and All harnesses/Codex/OpenCode tabs share a low toolbar. Metrics and short activity chart share a single shallow strip. Search and filters slim. Table rows are efficient with Tool/input,Harness,State,Duration,Time. The bottom inspector has horizontal Overview/Input/Result/Events tabs, close icon far right, a210px metadata column left, wide syntax readable JSON pane right. White code panel, blue strings, gray key names; selected Input tab a blue underline, no big button box. Blue selected bash row subdued enough to keep state badges readable. Visually this feels like an intentional developer tool panel system with excellent compact sizing.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-dock.png"
+    },
+    {
+      "id": "signal",
+      "label": "8. Signal",
+      "lineage": "Operations status consoles",
+      "thesis": "Keep source health visible beside a clean stream of recent calls.",
+      "palette": [
+        "#1d2433",
+        "#273248",
+        "#b2a6ed",
+        "#f2f4f9"
+      ],
+      "materials": [
+        "Blue-gray night panels",
+        "Lilac controls",
+        "Quiet status rail"
+      ],
+      "viewport": "A recent-call stream with a narrow contextual health and activity rail on the right.",
+      "risk": "A permanent health rail uses room otherwise available to evidence.",
+      "direction": "Signal. Dark blue-gray #1d2433, section tone #273248, soft lilac #b2a6ed for active controls, near-white #f2f4f9. Professional low-light operations workspace, no neon or glow, no oversized monitoring cards. Upper two slim toolbars include brand and status then Tool activity with scope and small inline statistics. Main content below is a large recent-call stream table across left about1100px, plus a240px right contextual Source health rail. Rail is CONTENT, not navigation: Healthy, Codex/Readable, OpenCode/Readable, a small sparse Activity trace with its dates, compact11calls/9observed/2awaiting details. Search and Filters sit above the call list. Selected bash row opens an INLINE native evidence region beneath it with Overview/Input/Result/Events and dark code, so the health rail stays visible. Lilac only on selection/focus, body text neutral. Native success/awaiting/failure markers properly green/amber/red. Fine desaturated blue-gray1px rules. Clearly show local TEST DATA identity. Nothing is boxed into big metric cards.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-signal.png"
+    },
+    {
+      "id": "prism",
+      "label": "9. Prism",
+      "lineage": "Calm modern task lists",
+      "thesis": "Use an airy command list and focused evidence pane with gentle color cues.",
+      "palette": [
+        "#ffffff",
+        "#f6f7fc",
+        "#6267cd",
+        "#279a9a"
+      ],
+      "materials": [
+        "Bright white",
+        "Periwinkle selection",
+        "Teal series"
+      ],
+      "viewport": "A compact overview above grouped command rows, with a light inspector beside them.",
+      "risk": "The softer hierarchy may feel less decisive for very large logs.",
+      "direction": "Prism. Bright white #ffffff, very pale cool #f6f7fc, periwinkle #6267cd and fresh teal #279a9a. Softly expressive but clearly operational, NOT pastel-tinted entire dashboard or rainbow decoration. No large colored title bar. Main compact top bar and scope toolbar, then a short overview organized as one connected horizontal region with count labels left and sparse chart right. Recent calls shown as a clean modern flat COMMAND LIST instead of a rigid table: date headings Sep26 and Feb1, each full-width row command/path primary on left, then small tool/harness/outcome pills and duration/time at right, with fine separators. White right inspector around350px, pale blue-purple Input tab, near-white code panel with violet syntax. Thin pale rules and6px corners on fields only. No shadows, no nested cards, no borders around each whole list item. Small periwinkle Filters primary and current scope selection, teal OpenCode series. Clear dark slate13px text and22px title, lots of deliberate horizontal alignment. Selected bash row subtly lilac tinted. Body stays white and readable.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-prism.png"
+    },
+    {
+      "id": "minimal",
+      "label": "10. Minimal",
+      "lineage": "Command explorers and data browsers",
+      "thesis": "Put the call list first, with overview and evidence integrated into its flow.",
+      "palette": [
+        "#ffffff",
+        "#f4f5f6",
+        "#20262e",
+        "#137c6b"
+      ],
+      "materials": [
+        "Near-white",
+        "Charcoal text",
+        "Small emerald selections"
+      ],
+      "viewport": "One compact toolbar, inline health summary, low trace and a full-width list with expanded input.",
+      "risk": "Less visual overview than a dashboard with a dedicated chart area.",
+      "direction": "Minimal. White #ffffff, lightgray #f4f5f6, charcoal #20262e, small emerald action #137c6b. The quietest, most compact utility concept with almost all visual weight on the actual calls. Brand status and title/scope are merged into a single efficient56px top toolbar: Tool Logger, small Tool activity, All/Codex/OpenCode, Test data, Local logs, Live updates. Beneath it a32px readable text summary strip:11calls ·9results observed ·2awaiting ·1failed ·Healthy. Below that a50px VERY low sparse trace with real labeled series and dates; no separate large Activity heading region. Search/All time/Filters directly above broad full-width TABLE, excellent whitespace within54px rows. Selected bash row expands native evidence inline beneath it with tiny Input/Result/Events tabs and modest monochrome JSON area. No right pane, no decorative navigation, no poster heading, no card frame. Fine neutral1px dividers,32px controls, emerald active scope underline instead of filled pill, small green Filters button. Metric numbers remain body-size. Explicit state badges and all fixture data preserved. The image should read as a polished productivity surface that exposes the most calls per viewport.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-minimal.png"
+    }
+  ]
+}

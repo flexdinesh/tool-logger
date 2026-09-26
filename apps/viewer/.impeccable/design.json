@@ -1,0 +1,885 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-26T04:29:58.163018+00:00",
+  "title": "Design System: Tool Logger",
+  "extensions": {
+    "colorMeta": {
+      "app-bg": {
+        "role": "neutral",
+        "displayName": "Graphite Canvas",
+        "canonical": "#17191d",
+        "tonalRamp": [
+          "oklch(0.1500 0.00846 264.379)",
+          "oklch(0.2643 0.00846 264.379)",
+          "oklch(0.3786 0.00846 264.379)",
+          "oklch(0.4929 0.00846 264.379)",
+          "oklch(0.6071 0.00846 264.379)",
+          "oklch(0.7214 0.00846 264.379)",
+          "oklch(0.8357 0.00846 264.379)",
+          "oklch(0.9500 0.00846 264.379)"
+        ]
+      },
+      "bg-surface": {
+        "role": "neutral",
+        "displayName": "Bg Surface",
+        "canonical": "#1b1f24",
+        "tonalRamp": [
+          "oklch(0.1500 0.01132 254.056)",
+          "oklch(0.2643 0.01132 254.056)",
+          "oklch(0.3786 0.01132 254.056)",
+          "oklch(0.4929 0.01132 254.056)",
+          "oklch(0.6071 0.01132 254.056)",
+          "oklch(0.7214 0.01132 254.056)",
+          "oklch(0.8357 0.01132 254.056)",
+          "oklch(0.9500 0.01132 254.056)"
+        ]
+      },
+      "bg-surface-secondary": {
+        "role": "neutral",
+        "displayName": "Bg Surface Secondary",
+        "canonical": "#22272e",
+        "tonalRamp": [
+          "oklch(0.1500 0.01490 256.796)",
+          "oklch(0.2643 0.01490 256.796)",
+          "oklch(0.3786 0.01490 256.796)",
+          "oklch(0.4929 0.01490 256.796)",
+          "oklch(0.6071 0.01490 256.796)",
+          "oklch(0.7214 0.01490 256.796)",
+          "oklch(0.8357 0.01490 256.796)",
+          "oklch(0.9500 0.01490 256.796)"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Text Primary",
+        "canonical": "#e9edf2",
+        "tonalRamp": [
+          "oklch(0.1500 0.00799 253.854)",
+          "oklch(0.2643 0.00799 253.854)",
+          "oklch(0.3786 0.00799 253.854)",
+          "oklch(0.4929 0.00799 253.854)",
+          "oklch(0.6071 0.00799 253.854)",
+          "oklch(0.7214 0.00799 253.854)",
+          "oklch(0.8357 0.00799 253.854)",
+          "oklch(0.9500 0.00799 253.854)"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Text Secondary",
+        "canonical": "#c5ccd6",
+        "tonalRamp": [
+          "oklch(0.1500 0.01590 257.204)",
+          "oklch(0.2643 0.01590 257.204)",
+          "oklch(0.3786 0.01590 257.204)",
+          "oklch(0.4929 0.01590 257.204)",
+          "oklch(0.6071 0.01590 257.204)",
+          "oklch(0.7214 0.01590 257.204)",
+          "oklch(0.8357 0.01590 257.204)",
+          "oklch(0.9500 0.01590 257.204)"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Text Muted",
+        "canonical": "#9ca6b3",
+        "tonalRamp": [
+          "oklch(0.1500 0.02203 254.952)",
+          "oklch(0.2643 0.02203 254.952)",
+          "oklch(0.3786 0.02203 254.952)",
+          "oklch(0.4929 0.02203 254.952)",
+          "oklch(0.6071 0.02203 254.952)",
+          "oklch(0.7214 0.02203 254.952)",
+          "oklch(0.8357 0.02203 254.952)",
+          "oklch(0.9500 0.02203 254.952)"
+        ]
+      },
+      "stroke": {
+        "role": "neutral",
+        "displayName": "Stroke",
+        "canonical": "#343b44",
+        "tonalRamp": [
+          "oklch(0.1500 0.01836 254.765)",
+          "oklch(0.2643 0.01836 254.765)",
+          "oklch(0.3786 0.01836 254.765)",
+          "oklch(0.4929 0.01836 254.765)",
+          "oklch(0.6071 0.01836 254.765)",
+          "oklch(0.7214 0.01836 254.765)",
+          "oklch(0.8357 0.01836 254.765)",
+          "oklch(0.9500 0.01836 254.765)"
+        ]
+      },
+      "stroke-strong": {
+        "role": "neutral",
+        "displayName": "Stroke Strong",
+        "canonical": "#4d5865",
+        "tonalRamp": [
+          "oklch(0.1500 0.02540 252.700)",
+          "oklch(0.2643 0.02540 252.700)",
+          "oklch(0.3786 0.02540 252.700)",
+          "oklch(0.4929 0.02540 252.700)",
+          "oklch(0.6071 0.02540 252.700)",
+          "oklch(0.7214 0.02540 252.700)",
+          "oklch(0.8357 0.02540 252.700)",
+          "oklch(0.9500 0.02540 252.700)"
+        ]
+      },
+      "action": {
+        "role": "primary",
+        "displayName": "Soft Lime",
+        "canonical": "#c7e780",
+        "tonalRamp": [
+          "oklch(0.1500 0.13435 123.294)",
+          "oklch(0.2643 0.13435 123.294)",
+          "oklch(0.3786 0.13435 123.294)",
+          "oklch(0.4929 0.13435 123.294)",
+          "oklch(0.6071 0.13435 123.294)",
+          "oklch(0.7214 0.13435 123.294)",
+          "oklch(0.8357 0.13435 123.294)",
+          "oklch(0.9500 0.13435 123.294)"
+        ]
+      },
+      "action-hover": {
+        "role": "primary",
+        "displayName": "Action Hover",
+        "canonical": "#d8efa5",
+        "tonalRamp": [
+          "oklch(0.1500 0.09872 122.380)",
+          "oklch(0.2643 0.09872 122.380)",
+          "oklch(0.3786 0.09872 122.380)",
+          "oklch(0.4929 0.09872 122.380)",
+          "oklch(0.6071 0.09872 122.380)",
+          "oklch(0.7214 0.09872 122.380)",
+          "oklch(0.8357 0.09872 122.380)",
+          "oklch(0.9500 0.09872 122.380)"
+        ]
+      },
+      "action-soft": {
+        "role": "primary",
+        "displayName": "Action Soft",
+        "canonical": "#2d3727",
+        "tonalRamp": [
+          "oklch(0.1500 0.03066 133.971)",
+          "oklch(0.2643 0.03066 133.971)",
+          "oklch(0.3786 0.03066 133.971)",
+          "oklch(0.4929 0.03066 133.971)",
+          "oklch(0.6071 0.03066 133.971)",
+          "oklch(0.7214 0.03066 133.971)",
+          "oklch(0.8357 0.03066 133.971)",
+          "oklch(0.9500 0.03066 133.971)"
+        ]
+      },
+      "on-action": {
+        "role": "neutral",
+        "displayName": "On Action",
+        "canonical": "#18210e",
+        "tonalRamp": [
+          "oklch(0.1500 0.03645 129.566)",
+          "oklch(0.2643 0.03645 129.566)",
+          "oklch(0.3786 0.03645 129.566)",
+          "oklch(0.4929 0.03645 129.566)",
+          "oklch(0.6071 0.03645 129.566)",
+          "oklch(0.7214 0.03645 129.566)",
+          "oklch(0.8357 0.03645 129.566)",
+          "oklch(0.9500 0.03645 129.566)"
+        ]
+      },
+      "state-success": {
+        "role": "neutral",
+        "displayName": "State Success",
+        "canonical": "#9bd58e",
+        "tonalRamp": [
+          "oklch(0.1500 0.11388 139.916)",
+          "oklch(0.2643 0.11388 139.916)",
+          "oklch(0.3786 0.11388 139.916)",
+          "oklch(0.4929 0.11388 139.916)",
+          "oklch(0.6071 0.11388 139.916)",
+          "oklch(0.7214 0.11388 139.916)",
+          "oklch(0.8357 0.11388 139.916)",
+          "oklch(0.9500 0.11388 139.916)"
+        ]
+      },
+      "state-success-soft": {
+        "role": "neutral",
+        "displayName": "State Success Soft",
+        "canonical": "#263528",
+        "tonalRamp": [
+          "oklch(0.1500 0.03047 148.386)",
+          "oklch(0.2643 0.03047 148.386)",
+          "oklch(0.3786 0.03047 148.386)",
+          "oklch(0.4929 0.03047 148.386)",
+          "oklch(0.6071 0.03047 148.386)",
+          "oklch(0.7214 0.03047 148.386)",
+          "oklch(0.8357 0.03047 148.386)",
+          "oklch(0.9500 0.03047 148.386)"
+        ]
+      },
+      "state-warning": {
+        "role": "neutral",
+        "displayName": "State Warning",
+        "canonical": "#efbe6b",
+        "tonalRamp": [
+          "oklch(0.1500 0.11579 79.258)",
+          "oklch(0.2643 0.11579 79.258)",
+          "oklch(0.3786 0.11579 79.258)",
+          "oklch(0.4929 0.11579 79.258)",
+          "oklch(0.6071 0.11579 79.258)",
+          "oklch(0.7214 0.11579 79.258)",
+          "oklch(0.8357 0.11579 79.258)",
+          "oklch(0.9500 0.11579 79.258)"
+        ]
+      },
+      "state-warning-soft": {
+        "role": "neutral",
+        "displayName": "State Warning Soft",
+        "canonical": "#382f22",
+        "tonalRamp": [
+          "oklch(0.1500 0.02553 76.694)",
+          "oklch(0.2643 0.02553 76.694)",
+          "oklch(0.3786 0.02553 76.694)",
+          "oklch(0.4929 0.02553 76.694)",
+          "oklch(0.6071 0.02553 76.694)",
+          "oklch(0.7214 0.02553 76.694)",
+          "oklch(0.8357 0.02553 76.694)",
+          "oklch(0.9500 0.02553 76.694)"
+        ]
+      },
+      "state-destructive": {
+        "role": "neutral",
+        "displayName": "State Destructive",
+        "canonical": "#ff9c9c",
+        "tonalRamp": [
+          "oklch(0.1500 0.11870 20.048)",
+          "oklch(0.2643 0.11870 20.048)",
+          "oklch(0.3786 0.11870 20.048)",
+          "oklch(0.4929 0.11870 20.048)",
+          "oklch(0.6071 0.11870 20.048)",
+          "oklch(0.7214 0.11870 20.048)",
+          "oklch(0.8357 0.11870 20.048)",
+          "oklch(0.9500 0.11870 20.048)"
+        ]
+      },
+      "state-destructive-soft": {
+        "role": "neutral",
+        "displayName": "State Destructive Soft",
+        "canonical": "#3c252c",
+        "tonalRamp": [
+          "oklch(0.1500 0.03650 359.773)",
+          "oklch(0.2643 0.03650 359.773)",
+          "oklch(0.3786 0.03650 359.773)",
+          "oklch(0.4929 0.03650 359.773)",
+          "oklch(0.6071 0.03650 359.773)",
+          "oklch(0.7214 0.03650 359.773)",
+          "oklch(0.8357 0.03650 359.773)",
+          "oklch(0.9500 0.03650 359.773)"
+        ]
+      },
+      "focus-ring": {
+        "role": "primary",
+        "displayName": "Focus Ring",
+        "canonical": "#c7e780",
+        "tonalRamp": [
+          "oklch(0.1500 0.13435 123.294)",
+          "oklch(0.2643 0.13435 123.294)",
+          "oklch(0.3786 0.13435 123.294)",
+          "oklch(0.4929 0.13435 123.294)",
+          "oklch(0.6071 0.13435 123.294)",
+          "oklch(0.7214 0.13435 123.294)",
+          "oklch(0.8357 0.13435 123.294)",
+          "oklch(0.9500 0.13435 123.294)"
+        ]
+      },
+      "bg-overlay": {
+        "role": "neutral",
+        "displayName": "Bg Overlay",
+        "canonical": "#10121699",
+        "tonalRamp": [
+          "oklch(0.1500 0.00881 264.328 / 0.6000)",
+          "oklch(0.2643 0.00881 264.328 / 0.6000)",
+          "oklch(0.3786 0.00881 264.328 / 0.6000)",
+          "oklch(0.4929 0.00881 264.328 / 0.6000)",
+          "oklch(0.6071 0.00881 264.328 / 0.6000)",
+          "oklch(0.7214 0.00881 264.328 / 0.6000)",
+          "oklch(0.8357 0.00881 264.328 / 0.6000)",
+          "oklch(0.9500 0.00881 264.328 / 0.6000)"
+        ]
+      },
+      "data": {
+        "role": "secondary",
+        "displayName": "Slate OpenCode Trace",
+        "canonical": "#8898af",
+        "tonalRamp": [
+          "oklch(0.1500 0.03874 257.408)",
+          "oklch(0.2643 0.03874 257.408)",
+          "oklch(0.3786 0.03874 257.408)",
+          "oklch(0.4929 0.03874 257.408)",
+          "oklch(0.6071 0.03874 257.408)",
+          "oklch(0.7214 0.03874 257.408)",
+          "oklch(0.8357 0.03874 257.408)",
+          "oklch(0.9500 0.03874 257.408)"
+        ]
+      },
+      "data-strong": {
+        "role": "secondary",
+        "displayName": "Green Codex Trace",
+        "canonical": "#c7e780",
+        "tonalRamp": [
+          "oklch(0.1500 0.13435 123.294)",
+          "oklch(0.2643 0.13435 123.294)",
+          "oklch(0.3786 0.13435 123.294)",
+          "oklch(0.4929 0.13435 123.294)",
+          "oklch(0.6071 0.13435 123.294)",
+          "oklch(0.7214 0.13435 123.294)",
+          "oklch(0.8357 0.13435 123.294)",
+          "oklch(0.9500 0.13435 123.294)"
+        ]
+      },
+      "scope-hover": {
+        "role": "neutral",
+        "displayName": "Scope Hover",
+        "canonical": "#22272e",
+        "tonalRamp": [
+          "oklch(0.1500 0.01490 256.796)",
+          "oklch(0.2643 0.01490 256.796)",
+          "oklch(0.3786 0.01490 256.796)",
+          "oklch(0.4929 0.01490 256.796)",
+          "oklch(0.6071 0.01490 256.796)",
+          "oklch(0.7214 0.01490 256.796)",
+          "oklch(0.8357 0.01490 256.796)",
+          "oklch(0.9500 0.01490 256.796)"
+        ]
+      },
+      "light-app-bg": {
+        "role": "neutral",
+        "displayName": "Near White Canvas",
+        "canonical": "#f5f6f7",
+        "tonalRamp": [
+          "oklch(0.1500 0.00171 247.839)",
+          "oklch(0.2643 0.00171 247.839)",
+          "oklch(0.3786 0.00171 247.839)",
+          "oklch(0.4929 0.00171 247.839)",
+          "oklch(0.6071 0.00171 247.839)",
+          "oklch(0.7214 0.00171 247.839)",
+          "oklch(0.8357 0.00171 247.839)",
+          "oklch(0.9500 0.00171 247.839)"
+        ]
+      },
+      "light-bg-surface": {
+        "role": "neutral",
+        "displayName": "Light Bg Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(0.1500 0.00000 0.000)",
+          "oklch(0.2643 0.00000 0.000)",
+          "oklch(0.3786 0.00000 0.000)",
+          "oklch(0.4929 0.00000 0.000)",
+          "oklch(0.6071 0.00000 0.000)",
+          "oklch(0.7214 0.00000 0.000)",
+          "oklch(0.8357 0.00000 0.000)",
+          "oklch(0.9500 0.00000 0.000)"
+        ]
+      },
+      "light-bg-surface-secondary": {
+        "role": "neutral",
+        "displayName": "Light Bg Surface Secondary",
+        "canonical": "#eef1f3",
+        "tonalRamp": [
+          "oklch(0.1500 0.00419 236.498)",
+          "oklch(0.2643 0.00419 236.498)",
+          "oklch(0.3786 0.00419 236.498)",
+          "oklch(0.4929 0.00419 236.498)",
+          "oklch(0.6071 0.00419 236.498)",
+          "oklch(0.7214 0.00419 236.498)",
+          "oklch(0.8357 0.00419 236.498)",
+          "oklch(0.9500 0.00419 236.498)"
+        ]
+      },
+      "light-text-primary": {
+        "role": "neutral",
+        "displayName": "Light Text Primary",
+        "canonical": "#232a33",
+        "tonalRamp": [
+          "oklch(0.1500 0.01937 254.821)",
+          "oklch(0.2643 0.01937 254.821)",
+          "oklch(0.3786 0.01937 254.821)",
+          "oklch(0.4929 0.01937 254.821)",
+          "oklch(0.6071 0.01937 254.821)",
+          "oklch(0.7214 0.01937 254.821)",
+          "oklch(0.8357 0.01937 254.821)",
+          "oklch(0.9500 0.01937 254.821)"
+        ]
+      },
+      "light-text-secondary": {
+        "role": "neutral",
+        "displayName": "Light Text Secondary",
+        "canonical": "#4a5663",
+        "tonalRamp": [
+          "oklch(0.1500 0.02620 250.503)",
+          "oklch(0.2643 0.02620 250.503)",
+          "oklch(0.3786 0.02620 250.503)",
+          "oklch(0.4929 0.02620 250.503)",
+          "oklch(0.6071 0.02620 250.503)",
+          "oklch(0.7214 0.02620 250.503)",
+          "oklch(0.8357 0.02620 250.503)",
+          "oklch(0.9500 0.02620 250.503)"
+        ]
+      },
+      "light-text-muted": {
+        "role": "neutral",
+        "displayName": "Light Text Muted",
+        "canonical": "#606b77",
+        "tonalRamp": [
+          "oklch(0.1500 0.02323 250.573)",
+          "oklch(0.2643 0.02323 250.573)",
+          "oklch(0.3786 0.02323 250.573)",
+          "oklch(0.4929 0.02323 250.573)",
+          "oklch(0.6071 0.02323 250.573)",
+          "oklch(0.7214 0.02323 250.573)",
+          "oklch(0.8357 0.02323 250.573)",
+          "oklch(0.9500 0.02323 250.573)"
+        ]
+      },
+      "light-stroke": {
+        "role": "neutral",
+        "displayName": "Light Stroke",
+        "canonical": "#dce1e5",
+        "tonalRamp": [
+          "oklch(0.1500 0.00769 241.672)",
+          "oklch(0.2643 0.00769 241.672)",
+          "oklch(0.3786 0.00769 241.672)",
+          "oklch(0.4929 0.00769 241.672)",
+          "oklch(0.6071 0.00769 241.672)",
+          "oklch(0.7214 0.00769 241.672)",
+          "oklch(0.8357 0.00769 241.672)",
+          "oklch(0.9500 0.00769 241.672)"
+        ]
+      },
+      "light-stroke-strong": {
+        "role": "neutral",
+        "displayName": "Light Stroke Strong",
+        "canonical": "#b6bec7",
+        "tonalRamp": [
+          "oklch(0.1500 0.01552 251.188)",
+          "oklch(0.2643 0.01552 251.188)",
+          "oklch(0.3786 0.01552 251.188)",
+          "oklch(0.4929 0.01552 251.188)",
+          "oklch(0.6071 0.01552 251.188)",
+          "oklch(0.7214 0.01552 251.188)",
+          "oklch(0.8357 0.01552 251.188)",
+          "oklch(0.9500 0.01552 251.188)"
+        ]
+      },
+      "light-action": {
+        "role": "primary",
+        "displayName": "Deep Green",
+        "canonical": "#486b1c",
+        "tonalRamp": [
+          "oklch(0.1500 0.11369 130.489)",
+          "oklch(0.2643 0.11369 130.489)",
+          "oklch(0.3786 0.11369 130.489)",
+          "oklch(0.4929 0.11369 130.489)",
+          "oklch(0.6071 0.11369 130.489)",
+          "oklch(0.7214 0.11369 130.489)",
+          "oklch(0.8357 0.11369 130.489)",
+          "oklch(0.9500 0.11369 130.489)"
+        ]
+      },
+      "light-action-hover": {
+        "role": "primary",
+        "displayName": "Light Action Hover",
+        "canonical": "#355213",
+        "tonalRamp": [
+          "oklch(0.1500 0.09545 131.130)",
+          "oklch(0.2643 0.09545 131.130)",
+          "oklch(0.3786 0.09545 131.130)",
+          "oklch(0.4929 0.09545 131.130)",
+          "oklch(0.6071 0.09545 131.130)",
+          "oklch(0.7214 0.09545 131.130)",
+          "oklch(0.8357 0.09545 131.130)",
+          "oklch(0.9500 0.09545 131.130)"
+        ]
+      },
+      "light-action-soft": {
+        "role": "primary",
+        "displayName": "Light Action Soft",
+        "canonical": "#edf4e1",
+        "tonalRamp": [
+          "oklch(0.1500 0.02614 123.422)",
+          "oklch(0.2643 0.02614 123.422)",
+          "oklch(0.3786 0.02614 123.422)",
+          "oklch(0.4929 0.02614 123.422)",
+          "oklch(0.6071 0.02614 123.422)",
+          "oklch(0.7214 0.02614 123.422)",
+          "oklch(0.8357 0.02614 123.422)",
+          "oklch(0.9500 0.02614 123.422)"
+        ]
+      },
+      "light-on-action": {
+        "role": "neutral",
+        "displayName": "Light On Action",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(0.1500 0.00000 0.000)",
+          "oklch(0.2643 0.00000 0.000)",
+          "oklch(0.3786 0.00000 0.000)",
+          "oklch(0.4929 0.00000 0.000)",
+          "oklch(0.6071 0.00000 0.000)",
+          "oklch(0.7214 0.00000 0.000)",
+          "oklch(0.8357 0.00000 0.000)",
+          "oklch(0.9500 0.00000 0.000)"
+        ]
+      },
+      "light-state-success": {
+        "role": "neutral",
+        "displayName": "Light State Success",
+        "canonical": "#2d713e",
+        "tonalRamp": [
+          "oklch(0.1500 0.10594 149.184)",
+          "oklch(0.2643 0.10594 149.184)",
+          "oklch(0.3786 0.10594 149.184)",
+          "oklch(0.4929 0.10594 149.184)",
+          "oklch(0.6071 0.10594 149.184)",
+          "oklch(0.7214 0.10594 149.184)",
+          "oklch(0.8357 0.10594 149.184)",
+          "oklch(0.9500 0.10594 149.184)"
+        ]
+      },
+      "light-state-success-soft": {
+        "role": "neutral",
+        "displayName": "Light State Success Soft",
+        "canonical": "#ebf6ee",
+        "tonalRamp": [
+          "oklch(0.1500 0.01570 154.472)",
+          "oklch(0.2643 0.01570 154.472)",
+          "oklch(0.3786 0.01570 154.472)",
+          "oklch(0.4929 0.01570 154.472)",
+          "oklch(0.6071 0.01570 154.472)",
+          "oklch(0.7214 0.01570 154.472)",
+          "oklch(0.8357 0.01570 154.472)",
+          "oklch(0.9500 0.01570 154.472)"
+        ]
+      },
+      "light-state-warning": {
+        "role": "neutral",
+        "displayName": "Light State Warning",
+        "canonical": "#8b6013",
+        "tonalRamp": [
+          "oklch(0.1500 0.10268 75.921)",
+          "oklch(0.2643 0.10268 75.921)",
+          "oklch(0.3786 0.10268 75.921)",
+          "oklch(0.4929 0.10268 75.921)",
+          "oklch(0.6071 0.10268 75.921)",
+          "oklch(0.7214 0.10268 75.921)",
+          "oklch(0.8357 0.10268 75.921)",
+          "oklch(0.9500 0.10268 75.921)"
+        ]
+      },
+      "light-state-warning-soft": {
+        "role": "neutral",
+        "displayName": "Light State Warning Soft",
+        "canonical": "#fff5dd",
+        "tonalRamp": [
+          "oklch(0.1500 0.03320 88.057)",
+          "oklch(0.2643 0.03320 88.057)",
+          "oklch(0.3786 0.03320 88.057)",
+          "oklch(0.4929 0.03320 88.057)",
+          "oklch(0.6071 0.03320 88.057)",
+          "oklch(0.7214 0.03320 88.057)",
+          "oklch(0.8357 0.03320 88.057)",
+          "oklch(0.9500 0.03320 88.057)"
+        ]
+      },
+      "light-state-destructive": {
+        "role": "neutral",
+        "displayName": "Light State Destructive",
+        "canonical": "#b74248",
+        "tonalRamp": [
+          "oklch(0.1500 0.15142 20.754)",
+          "oklch(0.2643 0.15142 20.754)",
+          "oklch(0.3786 0.15142 20.754)",
+          "oklch(0.4929 0.15142 20.754)",
+          "oklch(0.6071 0.15142 20.754)",
+          "oklch(0.7214 0.15142 20.754)",
+          "oklch(0.8357 0.15142 20.754)",
+          "oklch(0.9500 0.15142 20.754)"
+        ]
+      },
+      "light-state-destructive-soft": {
+        "role": "neutral",
+        "displayName": "Light State Destructive Soft",
+        "canonical": "#fff0f0",
+        "tonalRamp": [
+          "oklch(0.1500 0.01624 17.438)",
+          "oklch(0.2643 0.01624 17.438)",
+          "oklch(0.3786 0.01624 17.438)",
+          "oklch(0.4929 0.01624 17.438)",
+          "oklch(0.6071 0.01624 17.438)",
+          "oklch(0.7214 0.01624 17.438)",
+          "oklch(0.8357 0.01624 17.438)",
+          "oklch(0.9500 0.01624 17.438)"
+        ]
+      },
+      "light-focus-ring": {
+        "role": "primary",
+        "displayName": "Light Focus Ring",
+        "canonical": "#486b1c",
+        "tonalRamp": [
+          "oklch(0.1500 0.11369 130.489)",
+          "oklch(0.2643 0.11369 130.489)",
+          "oklch(0.3786 0.11369 130.489)",
+          "oklch(0.4929 0.11369 130.489)",
+          "oklch(0.6071 0.11369 130.489)",
+          "oklch(0.7214 0.11369 130.489)",
+          "oklch(0.8357 0.11369 130.489)",
+          "oklch(0.9500 0.11369 130.489)"
+        ]
+      },
+      "light-bg-overlay": {
+        "role": "neutral",
+        "displayName": "Light Bg Overlay",
+        "canonical": "#20262e45",
+        "tonalRamp": [
+          "oklch(0.1500 0.01731 255.673 / 0.2706)",
+          "oklch(0.2643 0.01731 255.673 / 0.2706)",
+          "oklch(0.3786 0.01731 255.673 / 0.2706)",
+          "oklch(0.4929 0.01731 255.673 / 0.2706)",
+          "oklch(0.6071 0.01731 255.673 / 0.2706)",
+          "oklch(0.7214 0.01731 255.673 / 0.2706)",
+          "oklch(0.8357 0.01731 255.673 / 0.2706)",
+          "oklch(0.9500 0.01731 255.673 / 0.2706)"
+        ]
+      },
+      "light-data": {
+        "role": "secondary",
+        "displayName": "Light Slate OpenCode Trace",
+        "canonical": "#60718b",
+        "tonalRamp": [
+          "oklch(0.1500 0.04565 258.772)",
+          "oklch(0.2643 0.04565 258.772)",
+          "oklch(0.3786 0.04565 258.772)",
+          "oklch(0.4929 0.04565 258.772)",
+          "oklch(0.6071 0.04565 258.772)",
+          "oklch(0.7214 0.04565 258.772)",
+          "oklch(0.8357 0.04565 258.772)",
+          "oklch(0.9500 0.04565 258.772)"
+        ]
+      },
+      "light-data-strong": {
+        "role": "secondary",
+        "displayName": "Light Green Codex Trace",
+        "canonical": "#668b2e",
+        "tonalRamp": [
+          "oklch(0.1500 0.12820 128.384)",
+          "oklch(0.2643 0.12820 128.384)",
+          "oklch(0.3786 0.12820 128.384)",
+          "oklch(0.4929 0.12820 128.384)",
+          "oklch(0.6071 0.12820 128.384)",
+          "oklch(0.7214 0.12820 128.384)",
+          "oklch(0.8357 0.12820 128.384)",
+          "oklch(0.9500 0.12820 128.384)"
+        ]
+      },
+      "light-scope-hover": {
+        "role": "neutral",
+        "displayName": "Light Scope Hover",
+        "canonical": "#eef1f3",
+        "tonalRamp": [
+          "oklch(0.1500 0.00419 236.498)",
+          "oklch(0.2643 0.00419 236.498)",
+          "oklch(0.3786 0.00419 236.498)",
+          "oklch(0.4929 0.00419 236.498)",
+          "oklch(0.6071 0.00419 236.498)",
+          "oklch(0.7214 0.00419 236.498)",
+          "oklch(0.8357 0.00419 236.498)",
+          "oklch(0.9500 0.00419 236.498)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Title",
+        "purpose": "Workspace and inspector headings."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Compact desktop sections; phone calls use 16px."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Inherited interface baseline."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Buttons, scope, and payload tabs."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Badges and compact labels."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "Tool names; regular variants for identifiers and summaries."
+      },
+      "payload": {
+        "displayName": "Payload",
+        "purpose": "Native JSON with 24px leading."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay-dark",
+        "value": "-0.5rem 0 1.5rem #00000026",
+        "purpose": "Dark modal inspector only."
+      },
+      {
+        "name": "overlay-light",
+        "value": "-0.5rem 0 1.5rem #20262e14",
+        "purpose": "Light modal inspector only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "chart",
+        "value": "transform 180ms ease-out",
+        "purpose": "Activity changes."
+      },
+      {
+        "name": "inspector",
+        "value": "180ms cubic-bezier(0.16,1,0.3,1)",
+        "purpose": "Horizontal reveal from 1.5rem."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "Immediate state changes."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone-max",
+        "value": "40rem"
+      },
+      {
+        "name": "heading-stack-max",
+        "value": "48rem"
+      },
+      {
+        "name": "inspector-dock-min",
+        "value": "70rem"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Button Primary",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Shared action control.",
+      "html": "<button class=\"ds-button-primary\">Inspect call</button>",
+      "css": ".ds-button-primary{font-family:var(--font-family-sans);font-size:var(--font-size-sm);font-weight:500;border-radius:var(--shape-radius-md);min-height:2rem;padding:0 0.75rem;cursor:pointer;color:var(--color-on-action);background:var(--color-action);border:none;} .ds-button-primary:hover{background:var(--color-action-hover);} .ds-button-primary:focus-visible{outline:none;box-shadow:0 0 0 2px var(--color-app-bg),0 0 0 4px var(--color-focus-ring);} .ds-button-primary:disabled{opacity:0.5;cursor:default;} @media(max-width:40rem){.ds-button-primary{min-height:2.75rem;}}"
+    },
+    {
+      "name": "Button Outline",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Shared action control.",
+      "html": "<button class=\"ds-button-outline\">Inspect call</button>",
+      "css": ".ds-button-outline{font-family:var(--font-family-sans);font-size:var(--font-size-sm);font-weight:500;border-radius:var(--shape-radius-md);min-height:2rem;padding:0 0.75rem;cursor:pointer;color:var(--color-text-secondary);background:var(--color-bg-surface);border:1px solid var(--color-stroke);} .ds-button-outline:hover{background:var(--color-bg-surface-secondary);border-color:var(--color-stroke-strong);color:var(--color-text-primary);} .ds-button-outline:focus-visible{outline:none;box-shadow:0 0 0 2px var(--color-app-bg),0 0 0 4px var(--color-focus-ring);} .ds-button-outline:disabled{opacity:0.5;cursor:default;} @media(max-width:40rem){.ds-button-outline{min-height:2.75rem;}}"
+    },
+    {
+      "name": "Button Ghost",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Shared action control.",
+      "html": "<button class=\"ds-button-ghost\">Inspect call</button>",
+      "css": ".ds-button-ghost{font-family:var(--font-family-sans);font-size:var(--font-size-sm);font-weight:500;border-radius:var(--shape-radius-md);min-height:2rem;padding:0 0.75rem;cursor:pointer;color:var(--color-action);background:transparent;border:none;} .ds-button-ghost:hover{background:var(--color-action-soft);color:var(--color-action-hover);} .ds-button-ghost:focus-visible{outline:none;box-shadow:0 0 0 2px var(--color-app-bg),0 0 0 4px var(--color-focus-ring);} .ds-button-ghost:disabled{opacity:0.5;cursor:default;} @media(max-width:40rem){.ds-button-ghost{min-height:2.75rem;}}"
+    },
+    {
+      "name": "Search field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Compact search field.",
+      "html": "<input class=\"ds-input\" type=\"search\" aria-label=\"Search tool calls\" placeholder=\"Search tool calls\">",
+      "css": ".ds-input{width:100%;min-height:2rem;padding:0 0.75rem;font-family:var(--font-family-sans);font-size:var(--font-size-sm);border:1px solid var(--color-stroke);border-radius:var(--shape-radius-md);color:var(--color-text-primary);background:var(--color-bg-surface);caret-color:var(--color-action);} .ds-input::placeholder{color:var(--color-text-muted);} .ds-input:focus-visible{outline:none;border-color:var(--color-focus-ring);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-focus-ring) 20%,transparent);} @media(max-width:40rem){.ds-input{min-height:2.75rem;}}"
+    },
+    {
+      "name": "Harness scope",
+      "kind": "nav",
+      "refersTo": "scope-control",
+      "description": "Quiet underline harness selection.",
+      "html": "<div class=\"ds-scope\" role=\"group\" aria-label=\"Filter by harness\"><button type=\"button\" aria-pressed=\"true\">All</button><button type=\"button\" aria-pressed=\"false\">Codex</button><button type=\"button\" aria-pressed=\"false\">OpenCode</button></div>",
+      "css": ".ds-scope{display:flex;gap:1rem;font-family:var(--font-family-sans);}.ds-scope button{min-height:2rem;padding:0 0.25rem 0.5rem;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--color-text-muted);font-family:var(--font-family-sans);font-size:var(--font-size-sm);font-weight:500;cursor:pointer;}.ds-scope button:hover{background:var(--color-scope-hover);}.ds-scope button[aria-pressed=true]{color:var(--color-text-primary);border-color:var(--color-action);}.ds-scope button:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px;}@media(max-width:40rem){.ds-scope button{flex:1;min-height:2.75rem;}}"
+    },
+    {
+      "name": "Native status labels",
+      "kind": "chip",
+      "refersTo": "status-neutral",
+      "description": "Observed results remain neutral; awaiting and native outcomes use semantic variants.",
+      "html": "<div class=\"ds-status-list\"><span class=\"ds-status ds-status-neutral\"><span class=\"ds-status-marker\" aria-hidden=\"true\"></span>Result received</span><span class=\"ds-status ds-status-success\"><span class=\"ds-status-marker\" aria-hidden=\"true\"></span>Succeeded</span><span class=\"ds-status ds-status-warning\"><span class=\"ds-status-marker\" aria-hidden=\"true\"></span>Awaiting result</span><span class=\"ds-status ds-status-destructive\"><span class=\"ds-status-marker\" aria-hidden=\"true\"></span>Failed</span></div>",
+      "css": ".ds-status{display:inline-flex;align-items:center;gap:0.375rem;padding:0.25rem 0.5rem;font-family:var(--font-family-sans);font-size:var(--font-size-xs);font-weight:500;border:1px solid var(--color-stroke);border-radius:var(--shape-radius-sm);background:var(--color-bg-surface-secondary);color:var(--color-text-secondary);} .ds-status-marker{width:0.375rem;height:0.375rem;border-radius:50%;background:currentColor;}.ds-status-list{display:flex;flex-wrap:wrap;gap:0.5rem;}.ds-status-success{color:var(--color-state-success);background:var(--color-state-success-soft);border-color:color-mix(in srgb,var(--color-state-success) 20%,transparent);}.ds-status-warning{color:var(--color-state-warning);background:var(--color-state-warning-soft);border-color:color-mix(in srgb,var(--color-state-warning) 20%,transparent);}.ds-status-destructive{color:var(--color-state-destructive);background:var(--color-state-destructive-soft);border-color:color-mix(in srgb,var(--color-state-destructive) 20%,transparent);}"
+    },
+    {
+      "name": "Content surface",
+      "kind": "card",
+      "refersTo": "content-surface",
+      "description": "Shared flat bordered primitive; dashboard sections stay edge to edge.",
+      "html": "<section class=\"ds-surface\"><h2>Recent calls</h2><p>Inspect local tool evidence.</p></section>",
+      "css": ".ds-surface{padding:var(--space-4);font-family:var(--font-family-sans);color:var(--color-text-primary);background:var(--color-bg-surface);border:1px solid var(--color-stroke);border-radius:var(--shape-radius-lg);} .ds-surface h2{margin:0;font-size:var(--font-size-sm);font-weight:600;} .ds-surface p{margin:var(--space-2) 0 0;font-size:var(--font-size-sm);color:var(--color-text-muted);}"
+    },
+    {
+      "name": "Payload panel",
+      "kind": "custom",
+      "refersTo": "payload",
+      "description": "Ruled tabs and scrollable native JSON; static state illustration.",
+      "html": "<section class=\"ds-payload\"><div class=\"ds-payload-tabs\" role=\"tablist\" aria-label=\"Call payload\"><button role=\"tab\" aria-selected=\"true\">Input</button><button role=\"tab\" aria-selected=\"false\">Result</button><button role=\"tab\" aria-selected=\"false\">Raw events</button></div><pre class=\"ds-payload-code\" tabindex=\"0\">{\n  \"command\": \"pnpm check\"\n}</pre></section>",
+      "css": ".ds-payload{font-family:var(--font-family-sans);}.ds-payload-tabs{display:flex;gap:1.5rem;border-bottom:1px solid var(--color-stroke);}.ds-payload-tabs button{padding:0.5rem 0;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--color-text-muted);font-family:var(--font-family-sans);font-size:var(--font-size-sm);font-weight:500;cursor:pointer;}.ds-payload-tabs button:hover{color:var(--color-text-secondary);}.ds-payload-tabs button[aria-selected=true]{color:var(--color-action);border-color:var(--color-action);}.ds-payload-tabs button:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px;}.ds-payload-code{max-height:58vh;overflow:auto;padding:0.75rem;border:1px solid var(--color-stroke);border-radius:var(--shape-radius-md);background:var(--color-bg-surface-secondary);color:var(--color-text-secondary);font-family:var(--font-family-mono);font-size:var(--font-size-xs);line-height:2;white-space:pre-wrap;overflow-wrap:break-word;tab-size:2;}.ds-payload-code:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px;}@media(max-width:40rem){.ds-payload-tabs button{min-height:2.75rem;min-width:2.75rem;}}"
+    },
+    {
+      "name": "Right inspector",
+      "kind": "custom",
+      "refersTo": "inspector",
+      "description": "Flat desktop evidence pane; Radix/application code supplies adaptive modal behavior.",
+      "html": "<aside class=\"ds-inspector\" aria-label=\"Tool call details\"><div class=\"ds-inspector-heading\"><h2>exec_command</h2><button aria-label=\"Close call details\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"m18 6-12 12M6 6l12 12\"/></svg></button></div><dl class=\"ds-inspector-meta\"><dt>Harness</dt><dd>Codex</dd><dt>Duration</dt><dd>142 ms</dd></dl><pre class=\"ds-inspector-code\">{ \"command\": \"pnpm check\" }</pre></aside>",
+      "css": ".ds-inspector{width:clamp(24rem,32vw,30rem);max-width:100%;padding:1rem;border-left:1px solid var(--color-stroke);background:var(--color-bg-surface);color:var(--color-text-primary);font-family:var(--font-family-sans);}.ds-inspector-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;}.ds-inspector-heading h2{margin:0;font-size:var(--font-size-xl);font-weight:600;letter-spacing:-0.025em;}.ds-inspector-heading button{width:2rem;height:2rem;padding:0;border:0;border-radius:var(--shape-radius-md);background:transparent;color:var(--color-action);cursor:pointer;}.ds-inspector-heading svg{width:1rem;height:1rem;}.ds-inspector-heading button:hover{background:var(--color-action-soft);color:var(--color-action-hover);}.ds-inspector-heading button:focus-visible{outline:2px solid var(--color-focus-ring);outline-offset:2px;}.ds-inspector-meta{display:grid;grid-template-columns:72px minmax(0,1fr);gap:0.5rem;padding:0.75rem 0;border-top:1px solid var(--color-stroke);border-bottom:1px solid var(--color-stroke);font-size:var(--font-size-xs);}.ds-inspector-meta dt{color:var(--color-text-muted);}.ds-inspector-meta dd{margin:0;color:var(--color-text-secondary);font-variant-numeric:tabular-nums;}.ds-inspector-code{padding:0.75rem;border:1px solid var(--color-stroke);border-radius:var(--shape-radius-md);background:var(--color-bg-surface-secondary);color:var(--color-text-secondary);font-family:var(--font-family-mono);font-size:var(--font-size-xs);line-height:2;white-space:pre-wrap;overflow-wrap:break-word;}@media(max-width:40rem){.ds-inspector{width:100%;}.ds-inspector-heading button{width:2.75rem;height:2.75rem;}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Graphite",
+    "overview": "Graphite is a compact, precise workspace for reading local tool evidence. Charcoal and near-white surfaces, slate text, thin rules, and restrained green accents keep dense information calm and readable. Shared React, Tailwind, and shadcn/ui primitives maintain consistent controls and states.\n\nBoth themes use the same semantic roles. Tone and borders establish depth; short motion explains state changes. Native evidence remains readable text. Page strategy and composition stay in the viewer surface contract.",
+    "keyCharacteristics": [
+      "Compact controls",
+      "Thin neutral rules",
+      "Paired light and dark palettes",
+      "Readable native evidence"
+    ],
+    "rules": [
+      {
+        "name": "Native Outcomes",
+        "body": "Result presence stays neutral; use success or failure colors only for a reported outcome.",
+        "section": "colors"
+      },
+      {
+        "name": "Shared Scale",
+        "body": "Use shared rem type roles and the 4px spacing rhythm; use monospace for evidence.",
+        "section": "typography"
+      },
+      {
+        "name": "Structural Depth",
+        "body": "Keep content flat; reserve the overlay shadow and scrim for the modal inspector.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do reuse semantic variables and shared components in both themes.",
+      "Do pair chart and state colors with readable labels and visible keyboard focus.",
+      "Do preserve native outcomes, identifiers, and payload text.",
+      "Do reflow data for phones and respect reduced motion."
+    ],
+    "donts": [
+      "Don't infer tool success from result presence.",
+      "Don't add oversized color fields, floating dashboard frames, or decorative effects that compete with calls.",
+      "Don't hard-code theme colors in shared components.",
+      "Don't carry unused navigation or live-glow compatibility tokens into new surfaces."
+    ]
+  }
+}

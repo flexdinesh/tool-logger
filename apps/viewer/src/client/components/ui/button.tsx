@@ -13,9 +13,9 @@ const buttonVariants = cva(
         ghost: "text-accent hover:bg-accent-soft hover:text-accent-hover",
       },
       size: {
-        default: "h-10 px-4",
-        compact: "h-9 px-3",
-        icon: "size-10 p-0",
+        default: "h-8 px-3",
+        compact: "h-8 px-3",
+        icon: "size-8 p-0 max-sm:min-w-11",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

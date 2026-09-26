@@ -413,7 +413,7 @@ test("HTTP serves the app, browser JavaScript, live data, and read-only routes",
   assert.equal(client.status, 200);
   assert.match(client.headers.get("content-type") ?? "", /javascript/);
   const javascript = await client.text();
-  assert.match(javascript, /Call explorer/);
+  assert.match(javascript, /Recent calls/);
   assert.doesNotMatch(javascript, /import type/);
   const empty = parseHarnessList(await (await fetch(`${base}/api/v1/harnesses`)).json());
   assert.deepEqual(empty.data, []);

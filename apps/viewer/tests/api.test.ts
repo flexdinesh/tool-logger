@@ -36,7 +36,7 @@ function record(phase: "PreToolUse" | "PostToolUse", call: string, time: string,
   }) + "\n";
 }
 
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, testData = false, malformed = false) {
   const directory = mkdtempSync(join(tmpdir(), "viewer-api-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const source = join(directory, "codex-tool-calls.jsonl");
@@ -46,7 +46,8 @@ async function fixture(t: TestContext) {
     + record("PreToolUse", "two", "2026-09-13T02:00:00.000Z", "read_file")
     + record("PreToolUse", "three", "2026-09-13T03:00:00.000Z")
     + record("PostToolUse", "three", "2026-09-13T03:00:00.300Z"));
-  const server = await createViewer({ source });
+  if (malformed) appendFileSync(source, "invalid-json\n");
+  const server = await createViewer({ source, testData });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   t.after(() => new Promise<void>((resolve, reject) => {
@@ -142,4 +143,66 @@ test("append-aware store reads only complete new records and updates existing ca
   assert.equal(recreated.harnesses[0]?.totalEvents, 1);
   assert.equal(recreated.harnesses[0]?.calls.length, 1);
   assert.equal(recreated.harnesses[0]?.calls[0]?.callId, "two");
+});
+
+test("combined scope preserves global chronology, native outcomes, facets, and paging", async (t) => {
+  const base = await fixture(t, true);
+  const collection = base + "/api/v1/harnesses/all/tool-calls";
+  const all = parseToolCallPage(await value(await fetch(collection)));
+  assert.equal(all.data.length, 11);
+  assert.deepEqual([...new Set(all.data.map((call) => call.harness))].sort(), ["codex", "opencode"]);
+  for (let index = 1; index < all.data.length; index += 1) {
+    assert.ok(Date.parse(all.data[index - 1]?.observedAt ?? "") >= Date.parse(all.data[index]?.observedAt ?? ""));
+  }
+  const ids: string[] = [];
+  let cursor: string | null = null;
+  do {
+    const query = new URLSearchParams({ limit: "2" });
+    if (cursor) query.set("cursor", cursor);
+    const page = parseToolCallPage(await value(await fetch(collection + "?" + query)));
+    ids.push(...page.data.map((call) => call.id));
+    cursor = page.page.nextCursor;
+  } while (cursor);
+  assert.deepEqual(ids, all.data.map((call) => call.id));
+  const first = parseToolCallPage(await value(await fetch(collection + "?limit=2")));
+  assert.ok(first.page.nextCursor);
+  assert.equal((await fetch(base + "/api/v1/harnesses/codex/tool-calls?limit=2&cursor=" + encodeURIComponent(first.page.nextCursor))).status, 400);
+
+  const metrics = parseToolCallMetrics(await value(await fetch(base + "/api/v1/harnesses/all/tool-call-metrics")));
+  assert.equal(metrics.data.totalCalls, 11);
+  assert.equal(metrics.data.completedCalls, 9);
+  assert.equal(metrics.data.awaitingCalls, 2);
+  assert.equal(metrics.data.successCalls, 1);
+  assert.equal(metrics.data.failureCalls, 1);
+  assert.equal(metrics.data.unknownCalls, 9);
+  assert.equal(metrics.data.activity.reduce((total, bin) => total + bin.count, 0), 11);
+  assert.equal(metrics.data.activity.reduce((total, bin) => total + (bin.harnesses?.codex ?? 0), 0), 8);
+  assert.equal(metrics.data.activity.reduce((total, bin) => total + (bin.harnesses?.opencode ?? 0), 0), 3);
+  for (const bin of metrics.data.activity) assert.equal(Object.values(bin.harnesses ?? {}).reduce((sum, count) => sum + count, 0), bin.count);
+
+  const facets = parseToolCallFacets(await value(await fetch(base + "/api/v1/harnesses/all/tool-call-facets")));
+  assert.equal(facets.data.tools.reduce((total, bucket) => total + bucket.count, 0), 11);
+  const filtered = parseToolCallPage(await value(await fetch(collection + "?outcome=failure")));
+  assert.equal(filtered.data.length, 1);
+  const failed = filtered.data[0];
+  assert.ok(failed);
+  assert.equal(failed.harness, "opencode");
+  const detail = parseToolCallDetail(await value(await fetch(base + "/api/v1/harnesses/" + failed.harness + "/tool-calls/" + encodeURIComponent(failed.id))));
+  assert.equal(detail.summary.outcome, "failure");
+  assert.ok(detail.native.events.length);
+});
+
+test("combined scope keeps valid calls when a source has malformed records", async (t) => {
+  const base = await fixture(t, false, true);
+  const all = parseToolCallPage(await value(await fetch(base + "/api/v1/harnesses/all/tool-calls")));
+  assert.equal(all.data.length, 3);
+  assert.equal(all.sourceHealth.status, "partial");
+  const metrics = parseToolCallMetrics(await value(await fetch(base + "/api/v1/harnesses/all/tool-call-metrics?lifecycle=awaiting")));
+  assert.equal(metrics.data.totalCalls, 1);
+  assert.equal(metrics.data.successCalls, 0);
+  const starts = metrics.data.activity.map((bin) => bin.start);
+  assert.equal(new Set(starts).size, starts.length);
+  assert.ok(metrics.data.window.until);
+  const end = Date.parse(metrics.data.window.until);
+  assert.ok(starts.every((start) => Date.parse(start) < end));
 });

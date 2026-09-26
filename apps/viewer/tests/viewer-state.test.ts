@@ -77,7 +77,7 @@ test("pagination appends unique calls and updates cursor", () => {
   state = viewerReducer(state, { type: "moreRequested" });
   state = viewerReducer(state, { type: "moreReceived", calls: [summary("one"), summary("two")], health: health(),
     nextCursor: "next", hasMore: true });
-  assert.deepEqual(state.calls.map((call) => call.id), ["one", "two"]);
+  assert.deepEqual(state.calls.map((call) => call.id), ["two", "one"]);
   assert.equal(state.nextCursor, "next");
   assert.equal(state.loadingMore, false);
 });
@@ -108,4 +108,15 @@ test("harness selection resets harness-specific state", () => {
   assert.equal(state.selectedCallId, null);
   assert.deepEqual(state.calls, []);
   assert.deepEqual(state.filters, initialViewerState.filters);
+});
+
+test("defaults to combined scope, validates selection, and handles empty sources", () => {
+  const loaded = viewerReducer(initialViewerState, { type: "harnessesReceived", value: harnesses(), requestedHarness: null });
+  assert.equal(loaded.selectedHarness, "all");
+  assert.equal(viewerReducer(loaded, { type: "harnessSelected", harness: "missing" }), loaded);
+  assert.equal(viewerReducer(loaded, { type: "harnessSelected", harness: "codex" }).selectedHarness, "codex");
+  assert.equal(viewerReducer(loaded, { type: "harnessSelected", harness: "all" }).selectedHarness, "all");
+  const empty = viewerReducer(loaded, { type: "harnessesReceived", value: { data: [], sourceHealth: [], demo: false }, requestedHarness: null });
+  assert.equal(empty.selectedHarness, null);
+  assert.equal(empty.loading, false);
 });
