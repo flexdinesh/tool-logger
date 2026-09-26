@@ -1,225 +1,260 @@
-# Tool Logger design system
+---
+name: Tool Logger
+description: A compact Graphite workspace for local tool evidence.
+colors:
+  "app-bg": "#17191d"
+  "bg-surface": "#1b1f24"
+  "bg-surface-secondary": "#22272e"
+  "text-primary": "#e9edf2"
+  "text-secondary": "#c5ccd6"
+  "text-muted": "#9ca6b3"
+  "stroke": "#343b44"
+  "stroke-strong": "#4d5865"
+  "action": "#c7e780"
+  "action-hover": "#d8efa5"
+  "action-soft": "#2d3727"
+  "on-action": "#18210e"
+  "state-success": "#9bd58e"
+  "state-success-soft": "#263528"
+  "state-warning": "#efbe6b"
+  "state-warning-soft": "#382f22"
+  "state-destructive": "#ff9c9c"
+  "state-destructive-soft": "#3c252c"
+  "focus-ring": "#c7e780"
+  "bg-overlay": "#10121699"
+  "data": "#8898af"
+  "data-strong": "#c7e780"
+  "scope-hover": "#22272e"
+  "light-app-bg": "#f5f6f7"
+  "light-bg-surface": "#ffffff"
+  "light-bg-surface-secondary": "#eef1f3"
+  "light-text-primary": "#232a33"
+  "light-text-secondary": "#4a5663"
+  "light-text-muted": "#606b77"
+  "light-stroke": "#dce1e5"
+  "light-stroke-strong": "#b6bec7"
+  "light-action": "#486b1c"
+  "light-action-hover": "#355213"
+  "light-action-soft": "#edf4e1"
+  "light-on-action": "#ffffff"
+  "light-state-success": "#2d713e"
+  "light-state-success-soft": "#ebf6ee"
+  "light-state-warning": "#8b6013"
+  "light-state-warning-soft": "#fff5dd"
+  "light-state-destructive": "#b74248"
+  "light-state-destructive-soft": "#fff0f0"
+  "light-focus-ring": "#486b1c"
+  "light-bg-overlay": "#20262e45"
+  "light-data": "#60718b"
+  "light-data-strong": "#668b2e"
+  "light-scope-hover": "#eef1f3"
+typography:
+  title:
+    fontFamily: "Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 600
+    lineHeight: 1.5
+    letterSpacing: "-0.025em"
+  section:
+    fontFamily: "Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 600
+    lineHeight: 1.5
+    letterSpacing: "normal"
+  body:
+    fontFamily: "Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: "normal"
+  control:
+    fontFamily: "Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 500
+    lineHeight: 1.5
+    letterSpacing: "normal"
+  label:
+    fontFamily: "Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 500
+    lineHeight: 1.5
+    letterSpacing: "normal"
+  code:
+    fontFamily: "\"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace"
+    fontSize: "0.75rem"
+    fontWeight: 500
+    lineHeight: 1.5
+    letterSpacing: "normal"
+  payload:
+    fontFamily: "\"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace"
+    fontSize: "0.75rem"
+    fontWeight: 400
+    lineHeight: 2
+    letterSpacing: "normal"
+rounded:
+  "sm": "0.25rem"
+  "md": "0.375rem"
+  "lg": "0.5rem"
+spacing:
+  "1": "0.25rem"
+  "2": "0.5rem"
+  "3": "0.75rem"
+  "4": "1rem"
+  "6": "1.5rem"
+  "12": "3rem"
+components:
+  button-primary:
+    textColor: "{colors.on-action}"
+    rounded: "{rounded.md}"
+    padding: "0 0.75rem"
+    height: "2rem"
+    backgroundColor: "{colors.action}"
+  button-outline:
+    textColor: "{colors.text-secondary}"
+    rounded: "{rounded.md}"
+    padding: "0 0.75rem"
+    height: "2rem"
+    backgroundColor: "{colors.bg-surface}"
+  button-ghost:
+    textColor: "{colors.action}"
+    rounded: "{rounded.md}"
+    padding: "0 0.75rem"
+    height: "2rem"
+  input:
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.md}"
+    padding: "0 0.75rem"
+    height: "2rem"
+    backgroundColor: "{colors.bg-surface}"
+  scope-control:
+    textColor: "{colors.text-muted}"
+    padding: "0 0.25rem 0.5rem"
+    height: "2rem"
+  status-neutral:
+    backgroundColor: "{colors.bg-surface-secondary}"
+    textColor: "{colors.text-secondary}"
+    rounded: "{rounded.sm}"
+    padding: "0.25rem 0.5rem"
+  content-surface:
+    backgroundColor: "{colors.bg-surface}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.lg}"
+  payload:
+    backgroundColor: "{colors.bg-surface-secondary}"
+    textColor: "{colors.text-secondary}"
+    typography: "{typography.payload}"
+    rounded: "{rounded.md}"
+    padding: "0.75rem"
+  inspector:
+    backgroundColor: "{colors.bg-surface}"
+    textColor: "{colors.text-primary}"
+    padding: "1rem"
+    width: "clamp(24rem, 32vw, 30rem)"
+---
+# Design System: Tool Logger
 
-This file is the visual constitution for the viewer. It consolidates the strongest existing direction: an observability workspace with dark evergreen navigation, quiet neutral surfaces, deliberate green accents, dense data views, and monospace technical details. Implementation must use semantic CSS variables exposed to Tailwind and consumed through shared shadcn/ui-based primitives.
+## Overview
 
-## Design direction
+**Creative North Star: "Graphite"**
 
-The interface is:
+Graphite is a compact, precise workspace for reading local tool evidence. Charcoal and near-white surfaces, slate text, thin rules, and restrained green accents keep dense information calm and readable. Shared React, Tailwind, and shadcn/ui primitives maintain consistent controls and states.
 
-- calm and restrained
-- clear before decorative
-- dense enough for operational data, never cramped
-- precise and trustworthy
-- local-first and utilitarian
-- modern through typography, rhythm, and finish rather than effects
+Both themes use the same semantic roles. Tone and borders establish depth; short motion explains state changes. Native evidence remains readable text. Page strategy and composition stay in the viewer surface contract.
 
-Avoid loud saturation, arbitrary gradients, decorative accent color, excessive cards, excessive borders, soft pill shapes everywhere, deep shadows, novelty type, and ornamental motion. Preserve the product structure and behavior unless a usability requirement demands change.
+**Key Characteristics:**
 
-## Design principles
+- Compact controls
+- Thin neutral rules
+- Paired light and dark palettes
+- Readable native evidence
 
-1. Consistency over novelty. Reuse tokens, primitives, and established compositions.
-2. Hierarchy before decoration. Establish importance with type, spacing, alignment, and surface level.
-3. Spacing communicates grouping. Keep related controls close and separate conceptual sections clearly.
-4. Semantic colors over arbitrary colors. Components consume roles, never private palettes.
-5. Fewer visual styles with clearer roles. A difference must communicate meaning.
-6. Data remains primary. Chrome should support scanning, filtering, comparing, and inspecting logs.
-7. Responsive behavior preserves hierarchy. Reflow and prioritize; do not merely shrink.
-8. Accessibility is part of the component contract, not a final pass.
+## Colors
 
-## Tokens
+Frontmatter is normative. Unprefixed color slugs record dark defaults; light-* slugs record the light counterparts. These are paired palettes, not separate component APIs: :root[data-theme=light] overrides the same --color-* semantic variables.
 
-Define canonical tokens in the viewer's global CSS. Expose them through Tailwind's theme layer and map shadcn roles to them. Components must use the semantic role, not a raw value.
+### Primary
 
-Keep the system intentionally small. Alias implementation tokens only when an API requires it; do not create synonymous roles.
+Soft Lime / Deep Green action tokens mark filled actions, selected scope, focus, links, and selected rows. action-hover changes tone; action-soft supplies a quiet selection fill; on-action supplies the filled-action foreground.
 
-### Color
+### Secondary
 
-Use these semantic roles:
+Slate Trace (data) identifies OpenCode; Green Trace (data-strong) identifies Codex. Series retain text labels; chart color does not express outcome.
 
-- `--color-app-bg`: application canvas.
-- `--color-bg-surface`: primary content surface, including raised overlays.
-- `--color-bg-surface-secondary`: table headings, code blocks, selected-neutral regions, and quiet grouped content.
-- `--color-text-primary`: headings and primary data.
-- `--color-text-secondary`: supporting copy and ordinary labels.
-- `--color-text-muted`: timestamps, metadata, placeholders, and tertiary guidance.
-- `--color-stroke`: default separation.
-- `--color-stroke-strong`: emphasized boundaries and active control outlines.
-- `--color-action`: primary action, selection, links, and active data emphasis.
-- `--color-action-hover`: action hover and pressed state.
-- `--color-action-soft`: selected and quiet action surface.
-- `--color-on-action`: text and icons on an action fill.
-- `--color-state-success`: confirmed or completed state.
-- `--color-state-warning`: awaiting, partial, or caution state.
-- `--color-state-destructive`: errors and destructive actions.
-- `--color-focus-ring`: keyboard focus ring.
-- `--color-bg-overlay`: overlay scrim.
-- `--color-data` and `--color-data-strong`: visualization series.
-- `--color-nav-bg`: evergreen navigation surface.
-- `--color-nav-foreground` and `--color-nav-muted`: navigation text hierarchy.
-- `--color-nav-surface`: active navigation surface.
+### Neutral
 
-The palette remains warm-neutral with an evergreen accent. Use accent only for actions, current selection, focus, and meaningful chart emphasis. It is not decoration.
+Charcoal / Near White app-bg is the canvas; bg-surface is content; bg-surface-secondary groups fields, hover rows, and payloads. Slate text-primary, text-secondary, and text-muted establish hierarchy. stroke and stroke-strong draw thin rules. scope-hover supplies quiet harness hover; bg-overlay dims only modal details.
 
-Text hierarchy uses `primary`, `secondary`, then `muted`; never invent a new gray to create another level. Default borders separate controls or dense regions. Strong borders communicate focus, selection, or a major structural boundary. Prefer whitespace or a surface change before adding a border.
+Native state-success, state-warning, and state-destructive each pair with a soft fill. Explicit success and readable source health use success; awaiting results, partial source health, paused updates, and test-data notices use warning; failures and unreadable sources use destructive. Received results with unknown outcome remain neutral.
 
-Status color supplements a label or icon; it never carries meaning alone. Success means a confirmed event, not inferred tool success. Warning means awaiting or incomplete. Destructive means an actual error or destructive action.
+**The Native Outcomes Rule.** Result presence stays neutral; use success or failure colors only for a reported outcome.
 
-The viewer has no dark mode today. Keep all components theme-ready by using semantic roles exclusively. A future `.dark` theme must redefine the same tokens rather than introduce a separate component palette.
+First visit follows OS preference; explicit light/dark selection persists locally under tool-logger-theme. The top-right toggle switches modes. Each theme sets CSS color-scheme. When storage is unavailable, selection lasts for the current visit.
 
-### Typography
+## Typography
 
-Use the system sans stack for interface text and the system monospace stack for paths, commands, IDs, payloads, code, and tabular technical values.
+**UI Font:** Inter, then the declared system sans stack. Inter is requested, not shipped locally; availability determines rendering.
+**Evidence Font:** SFMono-Regular, Consolas, Liberation Mono, then monospace.
 
-Canonical sizes:
+Apply global antialiased font smoothing on WebKit and grayscale smoothing on Firefox/macOS.
 
-- `--font-size-xs`: 12px; captions, timestamps, metadata, badges, table headings.
-- `--font-size-sm`: 14px; compact body, controls, table cells, labels.
-- `--font-size-md`: 16px; body and standard component text.
-- `--font-size-lg`: 18px; subsection heading.
-- `--font-size-xl`: 20px; section heading.
-- `--font-size-2xl`: 24px; panel or inspector title.
-- `--font-size-3xl`: 32px; page title and key display value.
+- Title: semibold 20px / 30px, tight tracking; workspace and inspector headings.
+- Section: semibold 14px / 21px on desktop; phone calls heading uses 16px / 24px.
+- Body: regular 16px / 24px inherited baseline.
+- Control: medium 14px / 21px; buttons, scope, and payload tabs. Phone search/selects use 16px text.
+- Label: medium 12px / 18px; badges and compact labels. Metadata may use regular weight.
+- Code: medium 12px / 18px tool names; regular mono summaries and identifiers.
+- Payload: regular 12px / 24px native JSON, two-space tab width.
 
-Use weights 400 for body, 500 for labels and controls, 600 for headings, and 700 only for exceptional emphasis. Body line height is 1.5–1.7. Headings use 1.15–1.3. Captions and controls use 1.3–1.5. Use tight tracking only for display headings and wide tracking only for short uppercase labels. Numeric metrics and times use tabular numerals.
+Use tabular numerals for measurements and dates. Truncate list summaries, wrap detail paths, and cap empty-state explanation width at 65ch. No display type role is established.
 
-Every screen uses the same hierarchy: one page title, section headings below it, then subsection headings. Do not skip levels to achieve a visual effect. Introduce no new type style unless these roles cannot express a distinct semantic hierarchy.
-
-### Spacing
-
-Use a 4px base scale:
-
-- `--space-1`: 4px
-- `--space-2`: 8px
-- `--space-3`: 12px
-- `--space-4`: 16px
-- `--space-6`: 24px
-- `--space-8`: 32px
-- `--space-12`: 48px
-- `--space-16`: 64px
-
-Use 4–12px between tightly related content, 12–16px inside controls and compact components, 16–24px as standard panel padding, 24–32px between related groups, and 48–64px between major conceptual sections.
-
-Page gutters are 16px on mobile, 24px on tablet, and 32–40px on desktop. Use one gutter across the page grid. Standard control-to-label gap is 8px, related action gap is 8–12px, heading-to-body gap is 8–12px, and form field gap is 16px.
-
-Custom spacing is acceptable only for optical alignment or required visualization geometry. Document the reason beside the value. Never preserve a one-off value solely because legacy CSS used it.
-
-### Sizing, radii, and shadows
-
-Controls use 36px compact, 40px default, or 44px touch-comfortable heights. Interactive targets must be at least 44×44px on touch layouts; their visible control may be smaller if the hit area remains sufficient. Icons use 16px, 20px, or 24px.
-
-Use three radii:
-
-- `--radius-sm`: 4px for tags, badges, and compact data marks.
-- `--radius-md`: 8px for controls and ordinary grouped surfaces.
-- `--radius-lg`: 12px for overlays and exceptional feature surfaces.
-
-Do not make every section a rounded card. Status badges may be compact rounded rectangles; reserve fully rounded pills for intrinsically circular or binary indicators.
-
-Use `--elevation-overlay` only for dialogs, menus, sheets, and other real elevation. Ordinary panels and cards use a border or surface contrast, not a shadow. Do not add decorative shadows.
+**The Shared Scale Rule.** Use shared rem type roles and the 4px spacing rhythm; use monospace for evidence.
 
 ## Layout
 
-The viewer is a full-width application shell with a maximum content width of 1600px. Align titles, statistics, charts, filters, and the event explorer to one content grid.
+Flat, edge-to-edge content uses thin horizontal rules. The 4px rhythm supplies 4–12px tight groups, 16px panel padding, and 24px desktop gutters. No centered floating dashboard frame or desktop width cap is established.
 
-- Desktop navigation width: 224px.
-- Tablet navigation rail: 64px.
-- Header height: 64px.
-- Inspector width: up to 520px on desktop, full width on mobile.
-- Narrow prose width: about 640px.
-- Data tables: use available width and scroll horizontally when their meaningful columns cannot fit.
+Observed viewer composition: 44px desktop header, compact heading/metrics, shallow activity trace, inline filters, ruled calls, and source details. At 48rem and below the heading stacks. At 40rem and below, 16px gutters, two-column metrics, single-column expanded filters, and full-width call buttons replace the table. The phone header occupies at least 52px including its 44px controls and vertical padding. Preserve tool, summary, harness, native state, date, and duration when reflowing.
 
-Use CSS Grid for page-level statistics and chart layouts; use Flexbox for one-dimensional control groups. Keep related labels and values aligned to shared columns. Do not independently center elements that belong to a grid.
+Desktop buttons and fields are 32px high; phone controls are at least 44px high. Phone icon controls and tabs also reach 44px width. Body minimum width is 20rem. Disclosures stay inline; raw payload scrolling stays inside its panel.
 
-Cards are appropriate for statistics, charts, and the call explorer because they are discrete query or visualization surfaces. Avoid nested cards. Within a major surface, prefer section spacing, subtle fills, or dividers.
+Current viewer inspector docks right from 70rem: nonmodal, without scrim or shadow, top 44px, width clamp(24rem, 32vw, 30rem). Workspace reserves that width, permitting successive row selection. Below 70rem it becomes a modal right sheet, maximum 520px from 40rem, full width below 40rem. These surface details remain examples; the surface contract owns composition.
+
+## Elevation & Depth
+
+Tone and 1px borders establish structure. Content and desktop details remain flat. Modal inspector shadows: dark -0.5rem 0 1.5rem #00000026; light -0.5rem 0 1.5rem #20262e14. Modal scrim uses bg-overlay. No decorative blur or live-indicator halo is used.
+
+**The Structural Depth Rule.** Keep content flat; reserve the overlay shadow and scrim for the modal inspector.
+
+Activity transforms transition over 180ms ease-out. Inspector reveal moves horizontally from 1.5rem to rest over 180ms cubic-bezier(0.16,1,0.3,1). Reduced motion sets transitions and animations to 0.01ms. No page entrance choreography.
+
+## Shapes
+
+Restrained corners: 4px badges, 6px controls and payloads, 8px reusable bordered surfaces. Main workspace and rows stay square and ruled. Borders are 1px; selected scope and payload tabs use 2px underlines. Small circular markers accompany readable series and status labels.
 
 ## Components
 
-Use shared shadcn/ui-based primitives before writing page-specific controls. Variants must represent distinct semantics, not tiny visual preferences.
+- Buttons: primary uses action/on-action; outline uses surface/secondary text/neutral border; ghost uses action text. Shared 6px corners, 12px horizontal padding, 32px desktop height, 32px square icon controls. Hover changes tone; focus uses a 2px ring and 2px canvas offset. Disabled opacity is 50%.
+- Fields: surface fill, 1px border, 6px corners, 12px padding, 14px text. Focus changes border and adds a 2px ring at 20% opacity; placeholders are muted. Phone fields reach 44px.
+- Scope/navigation: quiet underline selection, 16px gap, muted default text, primary selected text and 2px action rule. Hover uses scope-hover. State uses aria-pressed. Payload tabs share ruled selection with action-colored active text.
+- Status: label plus 6px marker, 4px corners, 8px horizontal/4px vertical padding, 12px medium type. Neutral surface/text/border; native success, warning, destructive use matching soft fill, foreground, and 20% foreground border. Labels are not actions.
+- Containers: reusable card primitive has surface fill, 1px border, 8px corners, no shadow or prescribed padding. Dashboard sections remain edge to edge.
+- Rows: secondary hover, action-soft selection, mono tool/summary, tabular dates/duration. Desktop supports keyboard selection with inset focus outline; phone calls become full-width buttons.
+- Payload: ruled tabs, secondary fill, 6px corners, 1px border, 12px padding, 12px mono/24px leading. Wrap long text and scroll inside a 58vh cap. Copy feedback remains readable.
+- Inspector: 20px heading, close action, native status, ruled metadata, payload near top. Desktop permits successive row selection; modal contains focus. Escape dismisses; focus returns to the call or search fallback. Radix/application code supplies behavior beyond visual snippets.
+- States: quiet loading skeletons, recovery messages, distinct absent-log versus unmatched-filter empty states. Health, tools, sources, context disclose inline.
 
-### Buttons
+## Do's and Don'ts
 
-Buttons use default, secondary, ghost, icon, or destructive intent. Match shared heights, padding, type, radius, focus, disabled, and icon rules. Place the icon before the label unless it indicates forward navigation. Icon-only buttons require an accessible name. Avoid filters such as generic brightness changes for hover; define states with semantic tokens.
+### Do:
 
-### Forms
+- Do reuse semantic variables and shared components in both themes.
+- Do pair chart and state colors with readable labels and visible keyboard focus.
+- Do preserve native outcomes, identifiers, and payload text.
+- Do reflow data for phones and respect reduced motion.
 
-Inputs, native selects, and textareas share height, border, radius, type, focus ring, disabled treatment, and placeholder color. Every control has a programmatic label. Keep native selects for compact filters unless a custom interaction adds clear value. Validation text sits with its field and uses both text and status styling.
+### Don't:
 
-### Cards and panels
-
-Use cards only for a meaningful grouped surface. Standard padding is 16px compact or 24px default. A heading row aligns title, description, and relevant action. Avoid shadows and repeated borders inside a card.
-
-### Navigation
-
-Navigation uses the evergreen surface and one unmistakable active state. Labels remain concise. Desktop shows full navigation, tablet uses an accessible icon rail with tooltips, and mobile replaces the persistent sidebar with a compact navigation control. Navigation icons come from the shared icon set, not text glyphs.
-
-### Tables
-
-Tables prioritize scanning. Keep headers compact, uppercase only for short labels, row density consistent, numbers tabular, and technical summaries monospace. Hover identifies an actionable row; selected is stronger and persistent. Preserve horizontal scrolling rather than truncating every field beyond recognition. Rows that open details must remain keyboard-operable.
-
-### Tabs, badges, and status indicators
-
-Tabs use a single selection cue and proper tab semantics. Badges label compact metadata; do not use them as decoration. Status indicators combine color with copy or an icon. Avoid adding near-identical variants.
-
-### Overlays and modals
-
-Use a sheet for detailed event inspection and a dialog for bounded decisions. Provide a scrim, focus trap, initial focus, Escape dismissal, close control, and focus return. Do not dismiss during an irreversible operation without confirmation.
-
-### Visualizations
-
-Charts use semantic accent and muted roles, consistent axes, legible labels, and non-color cues where comparison matters. Animation must be subtle and respect reduced-motion preferences. Do not use gradients or ornamental effects. Empty, loading, and error states occupy the same layout region to avoid jumps.
-
-## Interaction states
-
-- Hover: subtle surface, border, or foreground change; never the sole indication of interactivity.
-- Focus: visible `--color-focus-ring` ring with sufficient offset on every keyboard-operable element.
-- Active: stronger than hover and visibly connected to the action.
-- Selected: persistent accent-tinted surface or border plus semantic state such as `aria-selected`.
-- Disabled: reduced emphasis and blocked activation while retaining readable contrast; do not rely on cursor alone.
-- Loading: preserve dimensions, announce asynchronous status when useful, and avoid replacing stable content unnecessarily.
-- Error: concise actionable copy, destructive role, and `role="alert"` for newly surfaced errors.
-
-Transitions are 120–200ms for color, border, opacity, and small transforms. Respect `prefers-reduced-motion`. Never animate live log updates in a way that disrupts reading or changes scroll position.
-
-## Responsive design
-
-- Mobile, below 640px: remove the persistent sidebar, use 16px gutters, stack statistics and charts into one column where needed, make the inspector full-width, and provide 44px touch targets.
-- Tablet, 640–1023px: use the 64px navigation rail, two-column statistics, stacked charts, and 24px gutters.
-- Desktop, 1024px and above: use full navigation, four-column statistics, split charts, and 32–40px gutters.
-- Wide screens: cap primary content at 1600px and retain coherent alignment rather than stretching individual panels.
-
-Collapse columns by meaning: preserve the primary metric, tool, status, and action before secondary metadata. Reorder only when reading order remains logical in the DOM. Filters may wrap or stack; labels stay attached. Tables scroll horizontally when a card transformation would reduce comparison. Responsive changes must preserve focus order, selection context, and access to every action.
-
-## Accessibility
-
-- Meet WCAG AA contrast for text and controls; target 4.5:1 for body text and 3:1 for large text and meaningful UI boundaries.
-- Support complete keyboard operation with logical focus order and visible focus.
-- Use semantic landmarks, headings, tables, labels, dialogs, and live regions before adding ARIA.
-- Keep default body text readable and avoid long muted passages below 14px.
-- Give every input a label and every icon-only action an accessible name.
-- Maintain at least 44×44px touch targets on touch layouts.
-- Never communicate status, selection, or validation with color alone.
-- Preserve zoom, text reflow, and horizontal data access without clipping controls.
-- Respect reduced-motion and operating-system contrast preferences where practical.
-
-## Rules for future UI work
-
-Before introducing a visual change, ask:
-
-1. Does a semantic token already express this meaning?
-2. Does a shared component already solve it?
-3. Does this introduce a new visual pattern?
-4. Is the difference meaningful or merely incidental?
-5. Does it preserve hierarchy and data density?
-6. Will it remain coherent and usable on mobile?
-7. Are keyboard, contrast, labeling, and state communication correct?
-8. Does it follow this file?
-
-> Do not introduce a new color, font size, spacing value, radius, shadow, or component variant unless the existing system cannot express the required design meaning.
-
-If a new value is necessary, add it centrally, name its semantic purpose, document why existing roles fail, and apply it consistently. Do not ship local exceptions as experimentation.
-
-## Audit baseline
-
-The initial viewer established the product's useful character: dark evergreen navigation, a light canvas, quiet white surfaces, green activity signals, amber waiting states, readable data cards, compact filters, a broad event table, and a right-side inspector. Preserve that direction.
-
-The legacy implementation also used many nearly identical green and gray values, numerous incidental pixel gaps, several nearby radii, uneven control heights, and an oversized type scale driven by one-off roles. Consolidate these onto the tokens above during the Tailwind/shadcn migration. Preserve behavior, data hierarchy, the 1600px content cap, table overflow, and inspector focus handling. Leave information architecture, query behavior, and dark mode unchanged unless separately approved.
+- Don't infer tool success from result presence.
+- Don't add oversized color fields, floating dashboard frames, or decorative effects that compete with calls.
+- Don't hard-code theme colors in shared components.
+- Don't carry unused navigation or live-glow compatibility tokens into new surfaces.

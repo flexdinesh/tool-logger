@@ -1,0 +1,215 @@
+{
+  "title": "Tool Logger · 10 dashboard directions",
+  "question": "Choose a visual direction, or reply with two numbers to shortlist. Concept previews; the app is unchanged.",
+  "options": [
+    {
+      "id": "chronicle",
+      "label": "1. Chronicle",
+      "lineage": "Debugger event chronology",
+      "thesis": "Follow calls along a chronological spine, with evidence beside them.",
+      "palette": [
+        "#122033",
+        "#1b2b42",
+        "#f3bd70",
+        "#e7eef8"
+      ],
+      "materials": [
+        "Midnight blue",
+        "Amber selection",
+        "Thin timeline rules"
+      ],
+      "viewport": "A compact trace over a timestamp lane, grouped event rows and a docked inspector.",
+      "risk": "Less efficient than columns when comparing many durations.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-chronicle.png"
+    },
+    {
+      "id": "daylight",
+      "label": "2. Daylight",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Professional desktop data grids",
+      "thesis": "Scan a clear table with a quiet overview and stable inspector.",
+      "palette": [
+        "#ffffff",
+        "#f4f7f8",
+        "#143c49",
+        "#128c9c"
+      ],
+      "materials": [
+        "White surfaces",
+        "Petrol accents",
+        "Fine gray rules"
+      ],
+      "viewport": "Small brand row, inline metrics and trace, broad call table, white detail pane.",
+      "risk": "Familiar structure; distinction comes from typography and proportions.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-daylight.png"
+    },
+    {
+      "id": "graphite",
+      "label": "3. Graphite",
+      "lineage": "Developer console workspaces",
+      "thesis": "Keep calls dominant in a dark workspace, with details in a bottom dock.",
+      "palette": [
+        "#17191d",
+        "#22262c",
+        "#c7e780",
+        "#e9edf2"
+      ],
+      "materials": [
+        "Graphite panels",
+        "Soft lime selection",
+        "Low contrast chrome"
+      ],
+      "viewport": "A dark wide table below a low trace, with native input in a bottom dock.",
+      "risk": "Dark surfaces need careful contrast during long reading sessions.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-graphite.png"
+    },
+    {
+      "id": "sessions",
+      "label": "4. Session Desk",
+      "lineage": "Session-oriented development tools",
+      "thesis": "Narrow a session, then scan its calls and inspect evidence.",
+      "palette": [
+        "#f7f9fd",
+        "#ffffff",
+        "#4568d7",
+        "#22324c"
+      ],
+      "materials": [
+        "Cool white",
+        "Cornflower selection",
+        "Fine section separators"
+      ],
+      "viewport": "A contextual session index beside the calls, with harness scope in the main toolbar.",
+      "risk": "Session grouping adds a browsing step for global activity.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-sessions.png"
+    },
+    {
+      "id": "parallel",
+      "label": "5. Parallel",
+      "lineage": "Comparison and diff tools",
+      "thesis": "Compare both harnesses side by side while retaining native outcomes.",
+      "palette": [
+        "#ffffff",
+        "#f5f7f7",
+        "#168a86",
+        "#bb704b"
+      ],
+      "materials": [
+        "Clean white",
+        "Teal Codex lane",
+        "Copper OpenCode lane"
+      ],
+      "viewport": "Two labeled harness lanes under one overview, with selected evidence opening below.",
+      "risk": "Side-by-side lanes make global chronological scanning harder.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-parallel.png"
+    },
+    {
+      "id": "ledger",
+      "label": "6. Ledger",
+      "lineage": "Inspection records and audit ledgers",
+      "thesis": "Give commands, timestamps and outcomes the clarity of a well-set record.",
+      "palette": [
+        "#faf8f4",
+        "#ffffff",
+        "#263c34",
+        "#aa5f38"
+      ],
+      "materials": [
+        "Warm neutral canvas",
+        "Forest ink",
+        "Copper action"
+      ],
+      "viewport": "A quiet ledger with expanded evidence immediately beneath the selected row.",
+      "risk": "Warmth can feel subdued; command hierarchy must carry the character.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-ledger.png"
+    },
+    {
+      "id": "dock",
+      "label": "7. Dock",
+      "lineage": "Browser developer tools",
+      "thesis": "Inspect rich payloads below a broad call list without narrowing it.",
+      "palette": [
+        "#eef1f5",
+        "#ffffff",
+        "#325bc5",
+        "#1a2438"
+      ],
+      "materials": [
+        "Cool gray chrome",
+        "Blue selections",
+        "White content panes"
+      ],
+      "viewport": "A broad table above a resizable-looking bottom inspector with metadata and payload.",
+      "risk": "The inspector takes vertical space from the call list.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-dock.png"
+    },
+    {
+      "id": "signal",
+      "label": "8. Signal",
+      "lineage": "Operations status consoles",
+      "thesis": "Keep source health visible beside a clean stream of recent calls.",
+      "palette": [
+        "#1d2433",
+        "#273248",
+        "#b2a6ed",
+        "#f2f4f9"
+      ],
+      "materials": [
+        "Blue-gray night panels",
+        "Lilac controls",
+        "Quiet status rail"
+      ],
+      "viewport": "A recent-call stream with a narrow contextual health and activity rail on the right.",
+      "risk": "A permanent health rail uses room otherwise available to evidence.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-signal.png"
+    },
+    {
+      "id": "prism",
+      "label": "9. Prism",
+      "lineage": "Calm modern task lists",
+      "thesis": "Use an airy command list and focused evidence pane with gentle color cues.",
+      "palette": [
+        "#ffffff",
+        "#f6f7fc",
+        "#6267cd",
+        "#279a9a"
+      ],
+      "materials": [
+        "Bright white",
+        "Periwinkle selection",
+        "Teal series"
+      ],
+      "viewport": "A compact overview above grouped command rows, with a light inspector beside them.",
+      "risk": "The softer hierarchy may feel less decisive for very large logs.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-prism.png"
+    },
+    {
+      "id": "minimal",
+      "label": "10. Minimal",
+      "lineage": "Command explorers and data browsers",
+      "thesis": "Put the call list first, with overview and evidence integrated into its flow.",
+      "palette": [
+        "#ffffff",
+        "#f4f5f6",
+        "#20262e",
+        "#137c6b"
+      ],
+      "materials": [
+        "Near-white",
+        "Charcoal text",
+        "Small emerald selections"
+      ],
+      "viewport": "One compact toolbar, inline health summary, low trace and a full-width list with expanded input.",
+      "risk": "Less visual overview than a dashboard with a dedicated chart area.",
+      "comp": "/home/dee/workspace/tool-logger/main/apps/viewer/.impeccable/mocks/decision/dashboard-minimal.png"
+    }
+  ],
+  "reroll": {
+    "registers": [
+      "safer",
+      "bolder"
+    ]
+  },
+  "steer": true,
+  "canon": false
+}

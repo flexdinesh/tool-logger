@@ -73,7 +73,10 @@ pnpm --filter viewer start
 ```
 
 `start` incrementally reads available harness logs from the configured state
-directory. Select the harness from the left navigation. For UI development, run
+directory. The dashboard opens with all harnesses in one chronological view.
+Use the inline All harnesses / Codex / OpenCode control to scope the trace, metrics,
+filters, and calls. Expand Filters for status, tool, session, agent, and repository
+context; open any call to inspect its native payloads. For UI development, run
 `pnpm --filter viewer dev`; it reads the committed Codex and OpenCode synthetic
 fixtures and rebases their timestamps to the current time. Run
 `pnpm --filter viewer test-data` to serve those fixtures from a production build.
@@ -97,7 +100,10 @@ Viewer:
 The UI uses the read-only, versioned REST API under `/api/v1`. It queries compact
 tool-call summaries, facets, and metrics, then fetches raw detail only when the
 inspector opens. The server keeps harness files separate and uses a registry of
-harness adapters to project native records into the shared API; adding a harness
+harness adapters to project native records into the shared API. The reserved
+`all` scope combines reads, paging, facets, and metrics without merging log files;
+each call retains its harness and native outcome semantics. Activity buckets include
+per-harness counts. Cursors cannot be reused across scopes. Adding a harness
 does not constrain its on-disk event format. See
 [`apps/viewer/openapi.yaml`](apps/viewer/openapi.yaml) for the complete OpenAPI 3.1
 contract.

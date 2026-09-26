@@ -59,13 +59,14 @@ export const initialViewerState: ViewerState = {
 
 function unique(first: ToolCallSummary[], second: ToolCallSummary[]): ToolCallSummary[] {
   const ids = new Set(first.map((call) => call.id));
-  return [...first, ...second.filter((call) => !ids.has(call.id))];
+  return [...first, ...second.filter((call) => !ids.has(call.id))]
+    .sort((left, right) => Date.parse(right.observedAt) - Date.parse(left.observedAt) || right.id.localeCompare(left.id));
 }
 
 export function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
   switch (action.type) {
     case "harnessesReceived": {
-      const ids = action.value.data.map((harness) => harness.id);
+      const ids = action.value.data.length ? ["all", ...action.value.data.map((harness) => harness.id)] : [];
       const selectedHarness = state.selectedHarness && ids.includes(state.selectedHarness)
         ? state.selectedHarness
         : action.requestedHarness && ids.includes(action.requestedHarness) ? action.requestedHarness : ids[0] ?? null;
@@ -111,7 +112,7 @@ export function viewerReducer(state: ViewerState, action: ViewerAction): ViewerS
     case "payloadTabChanged":
       return state.selectedCallId ? { ...state, payloadTab: action.tab } : state;
     case "harnessSelected":
-      return state.harnessList?.data.some((harness) => harness.id === action.harness)
+      return state.harnessList && (action.harness === "all" || state.harnessList.data.some((harness) => harness.id === action.harness))
         ? { ...state, selectedHarness: action.harness, filters: emptyFilters, calls: [],
           selectedCallId: null, selectedCall: undefined, payloadTab: "input" } : state;
   }

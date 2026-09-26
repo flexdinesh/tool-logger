@@ -6,6 +6,7 @@ export function duration(ms: number | null): string {
 export const clock = (date: string | number) =>
   new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 export const number = (value: number) => value.toLocaleString();
+export const calendarDate = (date: string) => new Date(date).toLocaleDateString([], { month: "short", day: "numeric" });
 
 export function repositoryName(root: string | null): string {
   if (!root) return "";

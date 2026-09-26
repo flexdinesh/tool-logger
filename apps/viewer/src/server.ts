@@ -103,7 +103,7 @@ function productionAssets(directory: string) {
 
 function allowedDevelopmentPath(path: string, viteEnvironment: string): boolean {
   if (["/@vite/client", "/@react-refresh", viteEnvironment].includes(path)) return true;
-  if (/^\/node_modules\/\.vite\/deps\/[\w.-]+\.js(?:\.map)?$/.test(path)) return true;
+  if (/^\/node_modules\/\.vite\/deps\/[@\w.-]+\.js(?:\.map)?$/.test(path)) return true;
   if (path !== "/src/shared/api.ts" && !/^\/src\/client\/(?:[\w-]+\/)*[\w.-]+\.(?:tsx?|css|svg|png|jpg|webp|woff2)$/.test(path)) return false;
   try {
     const real = realpathSync(join(root, path));
@@ -191,6 +191,8 @@ export async function createViewer(
     vite = await createViteServer({
       root,
       configFile: join(root, "vite.config.ts"),
+      // Node's watcher otherwise restarts when Vite deletes its imported config bundle.
+      configLoader: "native",
       html: { cspNonce: noncePlaceholder },
       server: { middlewareMode: true, ws: { server }, cors: false },
       appType: "custom",

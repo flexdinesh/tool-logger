@@ -526,7 +526,7 @@ components:
       name: harness
       in: path
       required: true
-      description: Open harness identifier from the harness list.
+      description: Harness identifier from the harness list, or all for a combined read of available logs. Calls retain their native harness. Cursors are bound to the chosen scope.
       schema:
         type: string
         minLength: 1
@@ -535,6 +535,8 @@ components:
           value: codex
         opencode:
           value: opencode
+        all:
+          value: all
     CallId:
       name: callId
       in: path
@@ -1100,6 +1102,12 @@ components:
         count:
           type: integer
           minimum: 0
+        harnesses:
+          type: object
+          description: Per-harness counts within this time bucket.
+          additionalProperties:
+            type: integer
+            minimum: 0
     ToolUsageBucket:
       type: object
       additionalProperties: false

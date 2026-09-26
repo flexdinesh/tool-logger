@@ -62,11 +62,11 @@ export function PayloadPanel({ call, tab, onTabChange }: {
           </TabsTrigger>
         ))}
       </TabsList>
-      <div className="payload-heading mt-5 mb-2 flex items-center justify-between gap-3 text-xs font-medium tracking-wide text-muted">
-        <span id="payload-label">{tab === "input" ? "TOOL INPUT" : tab === "output" ? "TOOL RESULT" : "ORIGINAL HOOK EVENTS"}</span>
+      <div className="payload-heading mt-3 mb-2 flex items-center justify-between gap-3 text-xs font-medium text-muted">
+        <span id="payload-label">{tab === "input" ? "Tool input" : tab === "output" ? "Tool result" : "Original hook events"}</span>
         <CopyPayloadButton payload={payload} />
       </div>
-      <TabsContent value={tab} id="payload" className="max-h-[58vh] overflow-auto rounded-md border border-border bg-surface-secondary p-4 font-mono text-sm leading-7 text-secondary whitespace-pre-wrap wrap-break-word" tabIndex={0} aria-labelledby={`tab-${tab}`}>
+      <TabsContent value={tab} id="payload" className="max-h-[58vh] overflow-auto rounded-md border border-border bg-surface-secondary p-3 font-mono text-xs leading-6 text-secondary whitespace-pre-wrap wrap-break-word" tabIndex={0} aria-labelledby={`tab-${tab}`}>
         <pre>{payload}</pre>
       </TabsContent>
     </Tabs>

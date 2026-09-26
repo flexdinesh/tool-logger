@@ -110,9 +110,9 @@ async function fulfillApi(route: Route, details: ToolCallDetail[], list: Harness
   }
   const harness = url.pathname.split("/")[4] ?? "codex";
   const health = list.sourceHealth.find((source) => source.harness === harness) ?? sourceHealth(harness);
-  const filtered = details.filter((detail) => detail.summary.harness === harness && matches(detail, url));
+  const filtered = details.filter((detail) => (harness === "all" || detail.summary.harness === harness) && matches(detail, url));
   if (url.pathname.endsWith("/tool-call-facets")) {
-    await route.fulfill({ json: facets(details.filter((detail) => detail.summary.harness === harness), health) });
+    await route.fulfill({ json: facets(details.filter((detail) => harness === "all" || detail.summary.harness === harness), health) });
     return;
   }
   if (url.pathname.endsWith("/tool-call-metrics")) {
@@ -147,13 +147,14 @@ async function mockApi(page: Page, details: ToolCallDetail[], path = "/", expect
 test("committed test data renders both harnesses through REST", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("#demo")).toHaveText("TEST DATA");
-  await expect(page.locator("#stat-calls")).toHaveText("8");
-  await expect(page.locator("#rows > tr")).toHaveCount(8);
-  await expect(page.getByRole("navigation", { name: "Available harnesses" }).getByRole("button")).toHaveCount(2);
-  await page.getByRole("button", { name: "OpenCode tool activity" }).click();
+  await expect(page.locator("#stat-calls")).toHaveText("11");
+  await expect(page.locator("#rows > tr")).toHaveCount(11);
+  await expect(page.getByRole("group", { name: "Filter by harness" }).getByRole("button")).toHaveCount(3);
+  await page.getByRole("button", { name: "OpenCode", exact: true }).click();
   await expect(page).toHaveURL(/\?harness=opencode$/);
-  await expect(page.getByRole("heading", { name: "OpenCode activity." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tool activity", exact: true })).toBeVisible();
   await expect(page.locator("#rows > tr")).toHaveCount(3);
+  await page.locator(".filter-disclosure summary").click();
   await expect(page.getByLabel("Filter by agent")).toBeVisible();
 });
 
@@ -163,7 +164,7 @@ test("invalid harness falls back and empty sources show onboarding", async ({ pa
   await page.goto("/?harness=missing");
   await expect(page.getByText("No harness data")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Waiting for your first tool call" })).toBeVisible();
-  await expect(page.locator("#empty-message")).toContainText("Available harnesses appear in the navigation");
+  await expect(page.locator("#empty-message")).toContainText("Your local logs will appear here");
 });
 
 test("filters query the server, update metrics, URL, and reset", async ({ page }) => {
@@ -180,6 +181,7 @@ test("filters query the server, update metrics, URL, and reset", async ({ page }
   await expect(page.locator("#rows > tr")).toHaveCount(1);
   await expect(page).toHaveURL(/q=command-120/);
   await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await page.locator(".filter-disclosure summary").click();
   await page.getByLabel("Filter by status").selectOption("lifecycle:awaiting");
   await expect(page.locator("#rows > tr")).toHaveCount(1);
   await expect(page.locator("#stat-calls")).toHaveText("1");
@@ -211,7 +213,7 @@ test("inspector uses accessible dialog and tabs, preserves payload text, and cop
   const dialog = page.getByRole("dialog", { name: "Tool call details" });
   await expect(dialog).toBeVisible();
   await expect(page.getByRole("button", { name: "Close call details" })).toBeFocused();
-  await expect(page.locator("body")).toHaveAttribute("data-scroll-locked", "1");
+  await expect(page.locator("body")).not.toHaveAttribute("data-scroll-locked", "1");
   await expect(page.getByRole("tabpanel")).toContainText("injected-image");
   await expect(page.locator('img[src="/injected-image"]')).toHaveCount(0);
   const inputTab = page.getByRole("tab", { name: "Input", exact: true });
@@ -235,12 +237,89 @@ test("inspector uses accessible dialog and tabs, preserves payload text, and cop
 test("responsive layout keeps navigation and inspector usable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page, [call(0)]);
-  await expect(page.locator(".sidebar")).toBeHidden();
-  await expect(page.getByLabel("Select harness")).toBeVisible();
-  await expect(page.locator(".table-wrap")).toHaveCSS("overflow-x", "auto");
-  await page.locator("#rows > tr").click();
+  await expect(page.locator(".sidebar")).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Filter by harness" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page.locator("#mobile-calls button").click();
   const dialog = page.getByRole("dialog", { name: "Tool call details" });
+  await expect.poll(async () => (await dialog.boundingBox())?.x).toBe(0);
+  await expect(page.locator("body")).toHaveAttribute("data-scroll-locked", "1");
   const bounds = await dialog.boundingBox();
   expect(bounds?.x).toBe(0);
   expect(bounds?.width).toBe(390);
+});
+
+test("theme follows the system initially and preserves an explicit choice", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await mockApi(page, [call(0)]);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});
+
+test("desktop inspector stays beside usable calls and follows their selection", async ({ page }) => {
+  await mockApi(page, [call(0), call(1)]);
+  const rows = page.locator("#rows > tr");
+  await rows.first().click();
+  const dialog = page.getByRole("dialog", { name: "Tool call details" });
+  await expect(dialog).toBeVisible();
+  const detailsBounds = await dialog.boundingBox();
+  const callsBounds = await page.locator(".desktop-calls").boundingBox();
+  expect(detailsBounds?.x).toBeGreaterThan(0);
+  expect((callsBounds?.x ?? 0) + (callsBounds?.width ?? 0)).toBeLessThanOrEqual(detailsBounds?.x ?? 0);
+  await expect(page.getByRole("tabpanel")).toContainText("command-0");
+  await rows.nth(1).click();
+  await expect(page.getByRole("tabpanel")).toContainText("command-1");
+  await page.getByRole("button", { name: "Close call details" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(rows.nth(1)).toBeFocused();
+});
+
+test("combined scope filters both harnesses and loads native detail from its own source", async ({ page }) => {
+  const mixed = [call(0), call(1, { harness: "opencode", tool: "read", outcome: "failure", agentId: "build" })];
+  await mockApi(page, mixed);
+  await expect(page.getByRole("button", { name: "All harnesses", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#stat-completed")).toHaveText("2");
+  await page.getByRole("button", { name: "Codex", exact: true }).click();
+  await expect(page.locator("#stat-calls")).toHaveText("1");
+  await expect(page.locator("#rows")).toContainText("Codex");
+  await page.getByRole("button", { name: "All harnesses", exact: true }).click();
+  await expect(page.locator("#stat-calls")).toHaveText("2");
+  await page.locator(".filter-disclosure summary").click();
+  await page.getByLabel("Filter by status").selectOption("outcome:failure");
+  await expect(page.locator("#stat-calls")).toHaveText("1");
+  await expect(page.locator("#rows > tr")).toHaveCount(1);
+  const detailRequest = page.waitForRequest((request) => request.url().includes("/harnesses/opencode/tool-calls/call-1"));
+  await page.locator("#rows > tr").click();
+  await detailRequest;
+  await expect(page.locator("#metadata")).toContainText("OpenCode");
+  await expect(page.locator("#detail-status")).toHaveText("Failed");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Remove status filter" }).click();
+  await expect(page.locator("#stat-calls")).toHaveText("2");
+});
+
+test("pausing holds activity until updates resume", async ({ page }) => {
+  const calls = [call(0)];
+  await mockApi(page, calls);
+  await page.getByRole("button", { name: /Live updates/ }).click();
+  await expect(page.locator("#live-label")).toHaveText("Updates paused");
+  // Let the pause transition's initial read settle, then append a new observed call.
+  await page.clock.runFor(300);
+  calls.unshift(call(-1));
+  await page.clock.runFor(5_000);
+  await expect(page.locator("#stat-calls")).toHaveText("1");
+  await page.getByRole("button", { name: /Updates paused/ }).click();
+  await expect(page.locator("#stat-calls")).toHaveText("2");
+});
+
+test("filtered empty state suggests recovery", async ({ page }) => {
+  await mockApi(page, [call(0)], "/?q=no-such-command", 0);
+  await expect(page.getByRole("heading", { name: "No matching calls" })).toBeVisible();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await expect(page.locator("#stat-calls")).toHaveText("1");
 });

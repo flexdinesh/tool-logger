@@ -109,7 +109,7 @@ export type ToolCallMetrics = {
     averageDurationMs: number | null;
     failureRate: number | null;
     window: { since: string | null; until: string | null };
-    activity: { start: string; count: number }[];
+    activity: { start: string; count: number; harnesses?: Record<string, number> }[];
     toolUsage: { tool: string; count: number }[];
   };
   sourceHealth: SourceHealth;
@@ -219,7 +219,9 @@ function isToolCallMetrics(value: unknown): value is ToolCallMetrics {
     && nullableNumber(value.data.averageDurationMs) && nullableNumber(value.data.failureRate)
     && isObject(value.data.window) && nullableString(value.data.window.since) && nullableString(value.data.window.until)
     && Array.isArray(value.data.activity) && value.data.activity.every((entry) => isObject(entry)
-      && typeof entry.start === "string" && typeof entry.count === "number")
+      && typeof entry.start === "string" && typeof entry.count === "number"
+      && (entry.harnesses === undefined || (isObject(entry.harnesses)
+        && Object.values(entry.harnesses).every((count) => typeof count === "number"))))
     && Array.isArray(value.data.toolUsage) && value.data.toolUsage.every((entry) => isObject(entry)
       && typeof entry.tool === "string" && typeof entry.count === "number");
 }

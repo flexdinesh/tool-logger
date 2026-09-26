@@ -30,6 +30,7 @@ const queryKeys = new Set([
 
 type Cursor = { observedAt: string; id: string; query: string };
 type Query = {
+  scope: string;
   q: string;
   lifecycle: string[];
   outcome: string[];
@@ -217,12 +218,13 @@ function cursor(value: string): Cursor | null {
 
 function fingerprint(query: Query): string {
   return createHash("sha256").update(JSON.stringify({
+    scope: query.scope,
     q: query.q, lifecycle: query.lifecycle, outcome: query.outcome, tool: query.tool, session: query.session,
     agent: query.agent, repository: query.repository, directory: query.directory, since: query.since, until: query.until,
   })).digest("base64url");
 }
 
-function parseQuery(url: URL, paged: boolean): Query {
+function parseQuery(url: URL, paged: boolean, scope: string): Query {
   for (const key of url.searchParams.keys()) {
     if (!queryKeys.has(key) || (!paged && (key === "limit" || key === "cursor"))) {
       throw new HttpProblem(400, "Invalid query", `Unsupported query parameter: ${key}.`);
@@ -244,7 +246,7 @@ function parseQuery(url: URL, paged: boolean): Query {
     throw new HttpProblem(400, "Invalid query", `limit must be an integer from 1 to ${MAX_LIMIT}.`);
   }
   const query: Query = {
-    q, lifecycle, outcome, tool: many(url, "tool"), session: many(url, "session"), agent: many(url, "agent"),
+    scope, q, lifecycle, outcome, tool: many(url, "tool"), session: many(url, "session"), agent: many(url, "agent"),
     repository: many(url, "repository"), directory: many(url, "directory"),
     since: timestamp(one(url, "since"), "since"), until: timestamp(one(url, "until"), "until"),
     limit, cursor: paged ? cursor(one(url, "cursor")) : null,
@@ -311,11 +313,17 @@ function metricData(calls: ProjectedCall[], query: Query): ToolCallMetrics["data
   const times = summaries.map((call) => Date.parse(call.observedAt));
   const end = query.until ?? (times.length ? Math.max(...times) + 1 : Date.now());
   const start = query.since ?? (times.length ? Math.min(...times) : end - 3_600_000);
-  const width = Math.max(end - start, 60_000);
-  const activity = Array.from({ length: 36 }, (_, index) => ({ start: new Date(start + (index / 36) * width).toISOString(), count: 0 }));
-  for (const time of times) {
-    const bucket = activity[Math.min(35, Math.floor(((time - start) / width) * 36))];
-    if (bucket) bucket.count += 1;
+  const width = Math.max(end - start, 1);
+  const bucketCount = Math.min(36, Math.ceil(width));
+  const activity = Array.from({ length: bucketCount }, (_, index): { start: string; count: number; harnesses: Record<string, number> } =>
+    ({ start: new Date(start + (index / bucketCount) * width).toISOString(), count: 0, harnesses: {} }));
+  for (const call of summaries) {
+    const time = Date.parse(call.observedAt);
+    const bucket = activity[Math.min(bucketCount - 1, Math.floor(((time - start) / width) * bucketCount))];
+    if (bucket) {
+      bucket.count += 1;
+      bucket.harnesses[call.harness] = (bucket.harnesses[call.harness] ?? 0) + 1;
+    }
   }
   return {
     totalCalls: summaries.length,
@@ -365,9 +373,31 @@ function segments(pathname: string): string[] {
 }
 
 function dataset(snapshot: Snapshot, harness: string): HarnessDataset {
+  if (harness === "all") {
+    const readable = snapshot.harnesses.filter((entry) => !entry.missing && !entry.error);
+    return {
+      harness: "all", label: "All harnesses", apiVersion: null,
+      calls: readable.flatMap((entry) => entry.calls), source: "Local harness logs",
+      missing: false, error: "", truncated: readable.some((entry) => entry.truncated),
+      skipped: readable.reduce((sum, entry) => sum + entry.skipped, 0),
+      totalEvents: readable.reduce((sum, entry) => sum + entry.totalEvents, 0),
+    };
+  }
   const value = snapshot.harnesses.find((entry) => entry.harness === harness);
   if (!value || value.missing || value.error) throw new HttpProblem(404, "Not found", "Harness was not found.");
   return value;
+}
+
+function combinedHealth(snapshot: Snapshot, source: HarnessDataset): SourceHealth {
+  const sources = snapshot.harnesses.map((entry) => sourceHealth(entry, snapshot));
+  const readable = sources.filter((entry) => entry.status === "healthy" || entry.status === "partial");
+  const warnings = sources.filter((entry) => entry.status === "partial" || entry.status === "unreadable");
+  const base = sourceHealth(source, snapshot);
+  return {
+    ...base,
+    status: warnings.length ? readable.length ? "partial" : "unreadable" : readable.length ? "healthy" : "missing",
+    ...(warnings.length ? { message: warnings.map((entry) => `${entry.harness}: ${entry.message ?? "Source unavailable."}`).join(" ") } : {}),
+  };
 }
 
 export class RestApi {
@@ -406,9 +436,9 @@ export class RestApi {
       }
       if (parts.length < 5 || parts[2] !== "harnesses") throw new HttpProblem(404, "Not found", "Resource not found.");
       const source = dataset(snapshot, parts[3] ?? "");
-      const health = sourceHealth(source, snapshot);
+      const health = source.harness === "all" ? combinedHealth(snapshot, source) : sourceHealth(source, snapshot);
       if (parts[4] === "tool-calls" && parts.length === 5) {
-        const query = parseQuery(url, true);
+        const query = parseQuery(url, true, source.harness);
         const matches = queryCalls(source, query);
         const visible = query.cursor ? matches.filter((entry) => afterCursor(entry.summary, query.cursor ?? { observedAt: "", id: "", query: "" })) : matches;
         const page = visible.slice(0, query.limit);
@@ -429,7 +459,7 @@ export class RestApi {
         return true;
       }
       if (parts[4] === "tool-call-facets" && parts.length === 5) {
-        const query = parseQuery(url, false);
+        const query = parseQuery(url, false, source.harness);
         const value: ToolCallFacets = {
           data: {
             tools: facet(queryCalls(source, query, "tool"), (call) => call.tool),
@@ -446,7 +476,7 @@ export class RestApi {
         return true;
       }
       if (parts[4] === "tool-call-metrics" && parts.length === 5) {
-        const query = parseQuery(url, false);
+        const query = parseQuery(url, false, source.harness);
         const value: ToolCallMetrics = { data: metricData(queryCalls(source, query), query), sourceHealth: health };
         body(response, request, 200, value);
         return true;

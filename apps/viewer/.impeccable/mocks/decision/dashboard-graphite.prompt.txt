@@ -1,0 +1,25 @@
+Create one production-quality high-fidelity desktop UI concept screenshot for Tool Logger, a local read-only developer app for scanning coding-agent tool history and opening native inputs and results. Flat full-bleed landscape 1536x1024, no device frame, browser window decoration, poster, marketing hero, perspective, concept title, or caption inside the UI. Render the requested direction as a coherent real app with realistic type and alignment. It is Operate mode: task clarity and readable evidence lead.
+
+Shared constraints from the user: compact status/header/title sections, modest 28–34px desktop controls, 12–14px UI text, page headings22px max, no persistent decorative sidebar, no oversized metric cards, no thick outlines, all control/section borders are subtle1px, no heavy dashboard perimeter frame or shadow, no patterned canvas, no decorative gradients or glow. Use crisp chart bars with no outlines. There must be All / Codex / OpenCode harness filtering in the main workspace, combined view visible. Keep charts and health as a compact overview. Preserve explicit outcome labels: result presence alone is not success. Use real-library style fine stroke icons. Light backgrounds can use quiet subtle neutral section tone; dark backgrounds must have readable contrast.
+
+Actual product content must be recognizable, not filler:
+Small brand Tool Logger, TEST DATA badge, Local logs, Live updates control.
+Main title Tool activity, subtitle optional if space.
+Scope All harnesses / Codex / OpenCode, All harnesses selected.
+Overview:11 calls,9 results observed,2 awaiting result,1 failed,Source health Healthy. Do not turn these into hero-sized statistics. A short actual Activity trace and labeled series Codex/OpenCode; no invented huge activity counts. Synthetic fixture timestamps span Feb1 and Sep26, so sparse bars and explicit dates are valid. For grouped concepts, date group headings can be Sep26 and Feb1.
+Search placeholder Search tools, commands, or content..., All time dropdown, Filters control. Recent calls11.
+Use at least these five precise fixture rows:
+write | /home/fixture-user/work/tool-logger/notes.txt | OpenCode | Awaiting result | — | Sep26 12:44PM.
+read | /missing.txt | OpenCode | Failed |300ms | Sep26 12:43PM.
+bash | pnpm check | OpenCode | Succeeded |2.4s | Sep26 12:42PM.
+Bash | pwd | Codex | Result only | — | Feb1 03:45PM.
+read_file | notes.txt | Codex | Awaiting result | — | Feb1 03:35PM.
+Any visible selected call is bash /pnpm check, explicitly Succeeded, OpenCode,2.4s. Inspector title bash, command pnpm check, metadata above, tabs Overview/Input/Result/Events, Input selected. Native JSON text shown accurately:
+{
+  "command": "pnpm check",
+  "description": "Run workspace checks"
+}
+No invented tool executions, extra endpoints, models, customers or performance claims. Use monospaced type for commands, paths, code and durations, readable sans for interface text. Labels and markers must accompany colors. Use green for success/healthy, amber for awaiting, red for failure, neutral for Result only independently of the direction's brand accent. Input/output panel may be light or dark to suit its world; keep code readable. Leave unused canvas intentional and calm. Show a detailed real dashboard first viewport, enough content to choose the structural direction.
+
+DIRECTION:
+Graphite. Neutral charcoal #17191d, panels #22262c, warm-white text #e9edf2, soft lime accent #c7e780. No blue tint, neon glow, terminal gimmicks or green-on-black body text. Full-width event table is the focus, not a side panel: title and tiny scope tabs form one low toolbar, short pale-lime/gray trace above rows and inline metrics. Call table spans full width. Native inspector is a bottom dock about260px tall across the whole app, like a professional debug console, with a left metadata portion and wide right monospaced JSON area. Tab headings along dock top, Input selected with lime underline. Selected bash row gets subtle charcoal-green tint. Fine gray dividers, very compact muted outline fields, lime Filters action only small. Use general UI sans for labels and mono for code. Strong horizontal layering with clean thin rules.

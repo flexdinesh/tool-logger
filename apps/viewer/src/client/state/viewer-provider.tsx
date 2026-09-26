@@ -4,6 +4,7 @@ import { api } from "../api.ts";
 import { filterOptions, filtersFromUrl, queryParameters } from "./filters.ts";
 import { ViewerActionsContext, ViewerFocusContext, ViewerStateContext } from "./viewer-context.ts";
 import type { ViewerActions } from "./viewer-context.ts";
+import type { HarnessDescriptor } from "../../shared/api.ts";
 import { initialViewerState, viewerReducer } from "./viewer-reducer.ts";
 
 const POLL_MS = 2_000;
@@ -27,6 +28,8 @@ export function ViewerProvider({ children }: { children: ReactNode }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const returnFocusRef = useRef<HTMLElement>(null);
   const resourceKeyRef = useRef("");
+  const selectedCallHarness = state.selectedCall?.summary.harness
+    ?? state.calls.find((call) => call.id === state.selectedCallId)?.harness;
 
   useEffect(() => {
     const timer = setTimeout(() => setQueryFilters(state.filters), state.filters.search === queryFilters.search ? 0 : 250);
@@ -123,10 +126,10 @@ export function ViewerProvider({ children }: { children: ReactNode }) {
   }, [state.loadingMore, state.nextCursor, state.selectedHarness, queryFilters]);
 
   useEffect(() => {
-    if (!state.selectedCallId || !state.selectedHarness) return;
+    if (!state.selectedCallId || !selectedCallHarness) return;
     let active = true;
     const request = new AbortController();
-    void api.detail(state.selectedHarness, state.selectedCallId, request.signal)
+    void api.detail(selectedCallHarness, state.selectedCallId, request.signal)
       .then((result) => {
         if (active) dispatch({ type: "detailReceived", detail: result.value });
       })
@@ -137,9 +140,19 @@ export function ViewerProvider({ children }: { children: ReactNode }) {
       active = false;
       request.abort();
     };
-  }, [state.selectedCallId, state.selectedHarness]);
+  }, [state.selectedCallId, selectedCallHarness]);
 
-  const descriptor = state.harnessList?.data.find((harness) => harness.id === state.selectedHarness);
+  const descriptor = useMemo<HarnessDescriptor | undefined>(() => {
+    const harnesses = state.harnessList?.data ?? [];
+    if (state.selectedHarness !== "all") return harnesses.find((harness) => harness.id === state.selectedHarness);
+    if (!harnesses.length) return undefined;
+    const filters = new Map(harnesses.flatMap((harness) => harness.capabilities.filters.map((filter) => [filter.id, filter])));
+    return { id: "all", label: "All harnesses", apiVersions: [], capabilities: {
+      filters: [...filters.values()], columns: [], detailFields: [],
+      outcomeSemantics: { success: "Harness reported success", failure: "Harness reported failure",
+        unknown: "Result presence does not imply success" },
+    } };
+  }, [state.harnessList, state.selectedHarness]);
   const options = useMemo(() => filterOptions(state.facets), [state.facets]);
   const value = useMemo(() => ({ ...state, options, descriptor }), [state, options, descriptor]);
   const focus = useMemo(() => ({ searchRef, returnFocusRef }), []);

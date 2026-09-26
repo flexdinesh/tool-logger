@@ -7,7 +7,7 @@ export function CallStatus({ call, descriptor }: { call: ToolCallSummary; descri
       : call.lifecycle === "awaiting" ? "Awaiting result"
         : call.lifecycle === "result-only" ? "Result only" : "Result received";
   const variant = call.outcome === "failure" ? "destructive"
-    : call.outcome === "success" ? "success" : call.lifecycle === "awaiting" ? "warning" : "success";
+    : call.outcome === "success" ? "success" : call.lifecycle === "awaiting" ? "warning" : "neutral";
   const semantics = descriptor?.capabilities.outcomeSemantics[call.outcome];
   return (
     <Badge className="status-pill" variant={variant} title={semantics}>
