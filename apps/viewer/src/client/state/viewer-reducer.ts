@@ -19,14 +19,20 @@ export type ViewerState = {
   sourceHealth: SourceHealth | undefined;
   nextCursor: string | null;
   hasMore: boolean;
+  pageCount: number;
   live: boolean;
   loading: boolean;
   loadingMore: boolean;
   detailLoading: boolean;
   error: string;
+  harnessError: string;
+  detailError: string;
+  retryVersion: number;
+  detailRetryVersion: number;
   updated: string;
   filters: FilterValues;
   selectedCallId: string | null;
+  selectedCallHarness: string | null;
   selectedCall: ToolCallDetail | undefined;
   payloadTab: PayloadTab;
   selectedHarness: string | null;
@@ -38,8 +44,12 @@ export type ViewerAction =
   | { type: "resourcesReceived"; calls: ToolCallSummary[]; facets: ToolCallFacets; metrics: ToolCallMetrics;
     health: SourceHealth; nextCursor: string | null; hasMore: boolean; updated: string }
   | { type: "moreRequested" }
-  | { type: "moreReceived"; calls: ToolCallSummary[]; health: SourceHealth; nextCursor: string | null; hasMore: boolean }
-  | { type: "connectionFailed"; message: string }
+  | { type: "harnessesFailed"; message: string }
+  | { type: "resourcesFailed"; message: string }
+  | { type: "detailRequested" }
+  | { type: "detailFailed"; message: string }
+  | { type: "retryRequested" }
+  | { type: "detailRetryRequested" }
   | { type: "liveToggled" }
   | { type: "filterChanged"; key: keyof FilterValues; value: string }
   | { type: "filtersRestored"; filters: FilterValues }
@@ -52,16 +62,11 @@ export type ViewerAction =
 
 export const initialViewerState: ViewerState = {
   harnessList: undefined, calls: [], facets: undefined, metrics: undefined, sourceHealth: undefined,
-  nextCursor: null, hasMore: false, live: true, loading: true, loadingMore: false, detailLoading: false,
-  error: "", updated: "Connecting…", filters: emptyFilters, selectedCallId: null,
+  nextCursor: null, hasMore: false, pageCount: 1, live: true, loading: true, loadingMore: false, detailLoading: false,
+  error: "", harnessError: "", detailError: "", retryVersion: 0, detailRetryVersion: 0,
+  updated: "Connecting…", filters: emptyFilters, selectedCallId: null, selectedCallHarness: null,
   selectedCall: undefined, payloadTab: "input", selectedHarness: null,
 };
-
-function unique(first: ToolCallSummary[], second: ToolCallSummary[]): ToolCallSummary[] {
-  const ids = new Set(first.map((call) => call.id));
-  return [...first, ...second.filter((call) => !ids.has(call.id))]
-    .sort((left, right) => Date.parse(right.observedAt) - Date.parse(left.observedAt) || right.id.localeCompare(left.id));
-}
 
 export function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
   switch (action.type) {
@@ -71,49 +76,68 @@ export function viewerReducer(state: ViewerState, action: ViewerAction): ViewerS
         ? state.selectedHarness
         : action.requestedHarness && ids.includes(action.requestedHarness) ? action.requestedHarness : ids[0] ?? null;
       return selectedHarness
-        ? { ...state, harnessList: action.value, selectedHarness, error: state.selectedHarness ? state.error : "" }
+        ? { ...state, harnessList: action.value, selectedHarness, harnessError: "",
+          ...(selectedHarness === state.selectedHarness ? {} : {
+            pageCount: 1, loadingMore: false, selectedCallId: null, selectedCallHarness: null,
+            selectedCall: undefined, detailLoading: false, detailError: "",
+          }) }
         : { ...state, harnessList: action.value, selectedHarness, calls: [], facets: undefined, metrics: undefined,
-          sourceHealth: undefined, nextCursor: null, hasMore: false, loading: false,
-          selectedCallId: null, selectedCall: undefined, error: "" };
+          sourceHealth: undefined, nextCursor: null, hasMore: false, pageCount: 1, loading: false, loadingMore: false,
+          selectedCallId: null, selectedCallHarness: null, selectedCall: undefined, detailLoading: false,
+          error: "", harnessError: "", detailError: "" };
     }
     case "resourcesRequested":
-      return { ...state, loading: true, calls: [], facets: undefined, metrics: undefined,
+      return { ...state, loading: true, loadingMore: false, calls: [], facets: undefined, metrics: undefined,
         sourceHealth: undefined, nextCursor: null, hasMore: false };
     case "resourcesReceived":
-      return { ...state, calls: state.loading ? action.calls : unique(action.calls, state.calls),
+      return { ...state, calls: action.calls,
         facets: action.facets, metrics: action.metrics, sourceHealth: action.health,
-        nextCursor: state.loading ? action.nextCursor : state.nextCursor ?? action.nextCursor,
-        hasMore: state.loading ? action.hasMore : state.hasMore || action.hasMore,
-        loading: false, error: "", updated: action.updated };
+        nextCursor: action.nextCursor, hasMore: action.hasMore,
+        loading: false, loadingMore: false, error: "", updated: action.updated };
     case "moreRequested":
-      return { ...state, loadingMore: true };
-    case "moreReceived":
-      return { ...state, calls: unique(state.calls, action.calls), sourceHealth: action.health,
-        nextCursor: action.nextCursor, hasMore: action.hasMore, loadingMore: false, error: "" };
-    case "connectionFailed":
+      return state.hasMore && !state.loading && !state.loadingMore
+        ? { ...state, loadingMore: true, pageCount: state.pageCount + 1 } : state;
+    case "harnessesFailed":
+      return { ...state, harnessError: action.message, loading: state.selectedHarness ? state.loading : false };
+    case "resourcesFailed":
       return { ...state, error: action.message, loading: false, loadingMore: false,
-        detailLoading: false, updated: "Connection interrupted" };
+        updated: "Connection interrupted" };
+    case "detailRequested":
+      return { ...state, detailLoading: true };
+    case "detailFailed":
+      return { ...state, detailError: action.message, detailLoading: false };
+    case "retryRequested":
+      return { ...state, retryVersion: state.retryVersion + 1 };
+    case "detailRetryRequested":
+      return { ...state, detailRetryVersion: state.detailRetryVersion + 1 };
     case "liveToggled":
       return { ...state, live: !state.live };
     case "filterChanged":
-      return { ...state, filters: { ...state.filters, [action.key]: action.value } };
+      return { ...state, filters: { ...state.filters, [action.key]: action.value }, pageCount: 1, loadingMore: false };
     case "filtersRestored":
-      return { ...state, filters: action.filters };
+      return { ...state, filters: action.filters, pageCount: 1, loadingMore: false };
     case "filtersReset":
-      return { ...state, filters: emptyFilters };
-    case "callSelected":
-      return state.calls.some((call) => call.id === action.id)
-        ? { ...state, selectedCallId: action.id, selectedCall: undefined, detailLoading: true, payloadTab: "input" } : state;
+      return { ...state, filters: emptyFilters, pageCount: 1, loadingMore: false };
+    case "callSelected": {
+      if (action.id === state.selectedCallId) return state;
+      const call = state.calls.find((call) => call.id === action.id);
+      return call ? { ...state, selectedCallId: action.id, selectedCallHarness: call.harness,
+        selectedCall: undefined, detailLoading: true, detailError: "", payloadTab: "input" } : state;
+    }
     case "detailReceived":
-      return action.detail.summary.id === state.selectedCallId
-        ? { ...state, selectedCall: action.detail, detailLoading: false, error: "" } : state;
+      return action.detail.summary.id === state.selectedCallId && action.detail.summary.harness === state.selectedCallHarness
+        ? { ...state, selectedCall: action.detail, detailLoading: false, detailError: "" } : state;
     case "inspectorClosed":
-      return { ...state, selectedCallId: null, selectedCall: undefined, detailLoading: false, payloadTab: "input" };
+      return { ...state, selectedCallId: null, selectedCallHarness: null, selectedCall: undefined,
+        detailLoading: false, detailError: "", payloadTab: "input" };
     case "payloadTabChanged":
       return state.selectedCallId ? { ...state, payloadTab: action.tab } : state;
     case "harnessSelected":
+      if (action.harness === state.selectedHarness) return state;
       return state.harnessList && (action.harness === "all" || state.harnessList.data.some((harness) => harness.id === action.harness))
         ? { ...state, selectedHarness: action.harness, filters: emptyFilters, calls: [],
-          selectedCallId: null, selectedCall: undefined, payloadTab: "input" } : state;
+          facets: undefined, metrics: undefined, sourceHealth: undefined, nextCursor: null, hasMore: false,
+          pageCount: 1, loading: true, loadingMore: false, error: "", selectedCallId: null,
+          selectedCallHarness: null, selectedCall: undefined, detailLoading: false, detailError: "", payloadTab: "input" } : state;
   }
 }

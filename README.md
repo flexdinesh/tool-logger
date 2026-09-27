@@ -48,9 +48,9 @@ pnpm run link:opencode opencode-tool-logger
 ```
 
 The linker detects the installed OpenCode generation and installs one global local
-plugin link. Restart OpenCode after linking. V2 wins when both generations exist:
-its first activation preserves existing `opencode-tool-calls.jsonl` history and
-permanently suppresses later V1 writes in that state directory.
+plugin link. Restart OpenCode after linking. The linker selects V2 when both
+generations exist. Both generations can append to the same history; existing
+activation markers are ignored.
 
 OpenCode events append to
 `~/.local/state/tool-logger/opencode-tool-calls.jsonl`. The shared

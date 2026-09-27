@@ -15,5 +15,9 @@ apps/viewer/*
 !apps/viewer/src/
 apps/viewer/src/*
 !apps/viewer/src/*.ts
+!apps/viewer/src/server/
+!apps/viewer/src/server/**
+!apps/viewer/src/shared/
+!apps/viewer/src/shared/**
 !apps/viewer/src/client/
 !apps/viewer/src/client/**

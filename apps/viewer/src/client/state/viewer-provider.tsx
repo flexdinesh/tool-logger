@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { api } from "../api.ts";
+import { api, loadCallPages } from "../api.ts";
 import { filterOptions, filtersFromUrl, queryParameters } from "./filters.ts";
 import { ViewerActionsContext, ViewerFocusContext, ViewerStateContext } from "./viewer-context.ts";
 import type { ViewerActions } from "./viewer-context.ts";
@@ -28,8 +28,6 @@ export function ViewerProvider({ children }: { children: ReactNode }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const returnFocusRef = useRef<HTMLElement>(null);
   const resourceKeyRef = useRef("");
-  const selectedCallHarness = state.selectedCall?.summary.harness
-    ?? state.calls.find((call) => call.id === state.selectedCallId)?.harness;
 
   useEffect(() => {
     const timer = setTimeout(() => setQueryFilters(state.filters), state.filters.search === queryFilters.search ? 0 : 250);
@@ -48,7 +46,7 @@ export function ViewerProvider({ children }: { children: ReactNode }) {
         const requested = new URLSearchParams(window.location.search).get("harness");
         dispatch({ type: "harnessesReceived", value: result.value, requestedHarness: requested });
       } catch (reason) {
-        if (active) dispatch({ type: "connectionFailed", message: message(reason) });
+        if (active) dispatch({ type: "harnessesFailed", message: message(reason) });
       } finally {
         if (active && state.live) timer = setTimeout(() => { void refresh(); }, POLL_MS);
       }
@@ -59,7 +57,7 @@ export function ViewerProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       request?.abort();
     };
-  }, [state.live]);
+  }, [state.live, state.retryVersion]);
 
   useEffect(() => {
     if (!state.selectedHarness) return;
@@ -79,18 +77,18 @@ export function ViewerProvider({ children }: { children: ReactNode }) {
       pageQuery.set("limit", PAGE_SIZE);
       try {
         const [calls, facets, metrics] = await Promise.all([
-          api.calls(harness, pageQuery, request.signal),
+          loadCallPages(harness, pageQuery, state.pageCount, request.signal),
           api.facets(harness, query, request.signal),
           api.metrics(harness, query, request.signal),
         ]);
         if (!active) return;
         dispatch({
-          type: "resourcesReceived", calls: calls.value.data, facets: facets.value, metrics: metrics.value,
-          health: calls.value.sourceHealth, nextCursor: calls.value.page.nextCursor,
-          hasMore: calls.value.page.hasMore, updated: `Updated ${new Date().toLocaleTimeString()}`,
+          type: "resourcesReceived", calls: calls.data, facets: facets.value, metrics: metrics.value,
+          health: calls.sourceHealth, nextCursor: calls.page.nextCursor,
+          hasMore: calls.page.hasMore, updated: `Updated ${new Date().toLocaleTimeString()}`,
         });
       } catch (reason) {
-        if (active) dispatch({ type: "connectionFailed", message: message(reason) });
+        if (active) dispatch({ type: "resourcesFailed", message: message(reason) });
       } finally {
         if (active && state.live) timer = setTimeout(() => { void refresh(); }, POLL_MS);
       }
@@ -101,46 +99,34 @@ export function ViewerProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       request?.abort();
     };
-  }, [state.selectedHarness, queryFilters, state.live]);
+  }, [state.selectedHarness, queryFilters, state.live, state.pageCount, state.retryVersion]);
 
   useEffect(() => {
-    if (!state.loadingMore || !state.selectedHarness || !state.nextCursor) return;
+    if (!state.selectedCallId || !state.selectedCallHarness) return;
+    const id = state.selectedCallId;
+    const harness = state.selectedCallHarness;
     let active = true;
-    const request = new AbortController();
-    const query = apiQuery(queryFilters);
-    query.set("limit", PAGE_SIZE);
-    query.set("cursor", state.nextCursor);
-    void api.calls(state.selectedHarness, query, request.signal).then((result) => {
-      if (!active) return;
-      dispatch({
-        type: "moreReceived", calls: result.value.data, health: result.value.sourceHealth,
-        nextCursor: result.value.page.nextCursor, hasMore: result.value.page.hasMore,
-      });
-    }).catch((reason: unknown) => {
-      if (active) dispatch({ type: "connectionFailed", message: message(reason) });
-    });
-    return () => {
-      active = false;
-      request.abort();
-    };
-  }, [state.loadingMore, state.nextCursor, state.selectedHarness, queryFilters]);
-
-  useEffect(() => {
-    if (!state.selectedCallId || !selectedCallHarness) return;
-    let active = true;
-    const request = new AbortController();
-    void api.detail(selectedCallHarness, state.selectedCallId, request.signal)
-      .then((result) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let request: AbortController | undefined;
+    const refresh = async () => {
+      request = new AbortController();
+      dispatch({ type: "detailRequested" });
+      try {
+        const result = await api.detail(harness, id, request.signal);
         if (active) dispatch({ type: "detailReceived", detail: result.value });
-      })
-      .catch((reason: unknown) => {
-        if (active) dispatch({ type: "connectionFailed", message: message(reason) });
-      });
+      } catch (reason) {
+        if (active) dispatch({ type: "detailFailed", message: message(reason) });
+      } finally {
+        if (active && state.live) timer = setTimeout(() => { void refresh(); }, POLL_MS);
+      }
+    };
+    void refresh();
     return () => {
       active = false;
-      request.abort();
+      clearTimeout(timer);
+      request?.abort();
     };
-  }, [state.selectedCallId, selectedCallHarness]);
+  }, [state.selectedCallId, state.selectedCallHarness, state.live, state.detailRetryVersion]);
 
   const descriptor = useMemo<HarnessDescriptor | undefined>(() => {
     const harnesses = state.harnessList?.data ?? [];
@@ -168,6 +154,8 @@ export function ViewerProvider({ children }: { children: ReactNode }) {
     closeInspector: () => dispatch({ type: "inspectorClosed" }),
     selectPayloadTab: (tab) => dispatch({ type: "payloadTabChanged", tab }),
     selectHarness: (harness) => dispatch({ type: "harnessSelected", harness }),
+    retry: () => dispatch({ type: "retryRequested" }),
+    retryDetail: () => dispatch({ type: "detailRetryRequested" }),
   }), []);
 
   useEffect(() => {

@@ -18,6 +18,8 @@ export type ViewerActions = {
   closeInspector: () => void;
   selectPayloadTab: (tab: PayloadTab) => void;
   selectHarness: (harness: string) => void;
+  retry: () => void;
+  retryDetail: () => void;
 };
 
 export type ViewerFocus = {

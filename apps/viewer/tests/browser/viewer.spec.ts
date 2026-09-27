@@ -1,16 +1,39 @@
-import { expect, test } from "@playwright/test";
+import { expect, test as base } from "@playwright/test";
+import { once } from "node:events";
+import { createServer } from "node:http";
+import { isLogRecord } from "../../src/model.ts";
+import type { Snapshot, ToolCall } from "../../src/model.ts";
+import { RestApi } from "../../src/server/rest.ts";
+import type { SnapshotLoader } from "../../src/server/rest.ts";
 import type { Page, Route } from "@playwright/test";
-import type {
-  FacetBucket,
-  FilterCapability,
-  HarnessDescriptor,
-  HarnessList,
-  SourceHealth,
-  ToolCallDetail,
-  ToolCallFacets,
-  ToolCallMetrics,
-  ToolCallSummary,
-} from "../../src/shared/api.ts";
+import type { ToolCallDetail, ToolCallSummary } from "../../src/shared/api.ts";
+
+type ApiServer = (load: SnapshotLoader) => string;
+
+const test = base.extend<{ apiServer: ApiServer }>({
+  apiServer: async ({}, use) => {
+    let load: SnapshotLoader = async () => ({ harnesses: [], demo: false });
+    const api = new RestApi(() => load());
+    const server = createServer((request, response) => {
+      void api.handle(request, response, new URL(request.url ?? "/", "http://localhost"));
+    });
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    try {
+      const address = server.address();
+      if (!address || typeof address === "string") throw new Error("Missing fixture listener");
+      await use((loader) => {
+        load = loader;
+        return "http://127.0.0.1:" + address.port;
+      });
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => error ? reject(error) : resolve());
+      });
+    }
+  },
+});
 
 const now = new Date("2026-09-09T10:00:00.000Z");
 const home = "/home/viewer";
@@ -28,7 +51,7 @@ function call(index: number, overrides: Partial<ToolCallSummary> = {}): ToolCall
     metadata: { git: { root: repository, branch: "feature/viewer", dirty: true,
       status_porcelain_v2: "? changed.ts\0" } } };
   const summary: ToolCallSummary = {
-    id: `call-${index}`, harness: "codex", harnessApiVersion: null, tool: "Bash", observedAt,
+    id: `call-${index}`, harness: "codex", harnessApiVersion: overrides.harness === "opencode" ? 2 : null, tool: "Bash", observedAt,
     startedAt: observedAt, finishedAt: observedAt, lifecycle: "finished", outcome: "unknown", durationMs: 120,
     sessionId: "session-main", agentId: null, directory: `${repository}/src`, repository,
     inputSummary: `command-${index}`, attributes: { callId: `call-${index}`, turnId: "turn-1", branch: "feature/viewer" },
@@ -37,109 +60,47 @@ function call(index: number, overrides: Partial<ToolCallSummary> = {}): ToolCall
   return { summary, input, output, native: { attributes: {}, events: [pre, post] } };
 }
 
-function sourceHealth(harness = "codex"): SourceHealth {
-  return { harness, status: "healthy", sourceLabel: "~/.local/state/tool-logger/codex-tool-calls.jsonl",
-    apiVersions: [], skippedRecords: 0, lastObservedAt: now.toISOString() };
-}
-
-function descriptor(harness = "codex", agent = false): HarnessDescriptor {
-  const filter = (id: string, label: string): FilterCapability => ({ id, label, type: "multi-select", queryParameter: id });
-  return { id: harness, label: harness === "codex" ? "Codex" : "OpenCode", apiVersions: harness === "codex" ? [] : [1],
-    capabilities: {
-      filters: [filter("tool", "Tool"), filter("session", "Session"), filter("repository", "Repository"),
-        filter("directory", "Directory"), ...(agent ? [filter("agent", "Agent")] : [])],
-      columns: [], detailFields: [],
-      outcomeSemantics: { success: "Harness reported success", failure: "Harness reported failure", unknown: "Unknown" },
-    } };
-}
-
-function matches(detail: ToolCallDetail, url: URL): boolean {
+function fixtureCall(detail: ToolCallDetail): ToolCall {
   const summary = detail.summary;
-  const selected = (key: string, value: string | null) => {
-    const values = url.searchParams.getAll(key);
-    return values.length === 0 || values.includes(value ?? "unknown");
+  const text = (key: string) => typeof summary.attributes[key] === "string" ? summary.attributes[key] : "";
+  const first = detail.native.events[0];
+  const last = detail.native.events.at(-1);
+  return {
+    id: summary.id, harness: summary.harness, apiVersion: summary.harnessApiVersion, time: summary.observedAt,
+    tool: summary.tool, session: summary.sessionId ?? "", turn: text("turnId"), callId: text("callId"),
+    message: text("messageId"), agent: summary.agentId ?? "", title: text("title"), cwd: summary.directory ?? "",
+    status: summary.outcome === "failure" ? "failed" : summary.lifecycle === "awaiting" ? "awaiting" : "completed",
+    durationMs: summary.durationMs, input: detail.input, output: detail.output, resultMetadata: null,
+    pre: summary.lifecycle !== "result-only" && isLogRecord(first) ? first : null,
+    post: summary.lifecycle !== "awaiting" && isLogRecord(last) ? last : null,
   };
-  const query = (url.searchParams.get("q") ?? "").toLowerCase();
-  const since = url.searchParams.get("since");
-  return selected("lifecycle", summary.lifecycle) && selected("outcome", summary.outcome)
-    && selected("tool", summary.tool) && selected("session", summary.sessionId)
-    && selected("agent", summary.agentId) && selected("repository", summary.repository)
-    && selected("directory", summary.directory)
-    && (!since || Date.parse(summary.observedAt) >= Date.parse(since))
-    && (!query || JSON.stringify(detail).toLowerCase().includes(query));
 }
 
-function buckets(values: (string | null)[]): FacetBucket[] {
-  const counts = new Map<string, number>();
-  for (const value of values) counts.set(value ?? "unknown", (counts.get(value ?? "unknown") ?? 0) + 1);
-  return [...counts].map(([value, count]) => ({ value, label: value, count }))
-    .sort((left, right) => left.label.localeCompare(right.label));
+function fixtureSnapshot(details: ToolCallDetail[], harnesses: string[], readable = harnesses): Snapshot {
+  return {
+    homeDirectory: home, demo: false,
+    harnesses: harnesses.map((harness) => ({
+      harness, label: harness === "codex" ? "Codex" : "OpenCode", apiVersion: null,
+      calls: details.filter((detail) => detail.summary.harness === harness).map(fixtureCall),
+      source: `${home}/.local/state/tool-logger/${harness}-tool-calls.jsonl`, missing: !readable.includes(harness),
+      truncated: false, skipped: 0, totalEvents: 0, error: "",
+    })),
+  };
 }
 
-function facets(details: ToolCallDetail[], health: SourceHealth): ToolCallFacets {
-  const summaries = details.map((detail) => detail.summary);
-  return { data: {
-    tools: buckets(summaries.map((call) => call.tool)), sessions: buckets(summaries.map((call) => call.sessionId)),
-    agents: buckets(summaries.map((call) => call.agentId)), repositories: buckets(summaries.map((call) => call.repository)),
-    directories: buckets(summaries.map((call) => call.directory)), lifecycles: buckets(summaries.map((call) => call.lifecycle)),
-    outcomes: buckets(summaries.map((call) => call.outcome)),
-  }, sourceHealth: health };
-}
-
-function metrics(details: ToolCallDetail[], health: SourceHealth): ToolCallMetrics {
-  const summaries = details.map((detail) => detail.summary);
-  const durations = summaries.flatMap((call) => call.durationMs === null ? [] : [call.durationMs]);
-  return { data: {
-    totalCalls: summaries.length,
-    completedCalls: summaries.filter((call) => call.lifecycle !== "awaiting").length,
-    awaitingCalls: summaries.filter((call) => call.lifecycle === "awaiting").length,
-    successCalls: summaries.filter((call) => call.outcome === "success").length,
-    failureCalls: summaries.filter((call) => call.outcome === "failure").length,
-    unknownCalls: summaries.filter((call) => call.outcome === "unknown").length,
-    averageDurationMs: durations.length ? durations.reduce((total, value) => total + value, 0) / durations.length : null,
-    failureRate: null, window: { since: null, until: null }, activity: [],
-    toolUsage: buckets(summaries.map((call) => call.tool)).map((bucket) => ({ tool: bucket.value, count: bucket.count })),
-  }, sourceHealth: health };
-}
-
-async function fulfillApi(route: Route, details: ToolCallDetail[], list: HarnessList): Promise<void> {
+async function fulfillApi(route: Route, apiBase: string): Promise<void> {
   const url = new URL(route.request().url());
-  if (url.pathname === "/api/v1/harnesses") {
-    await route.fulfill({ json: list });
-    return;
-  }
-  const harness = url.pathname.split("/")[4] ?? "codex";
-  const health = list.sourceHealth.find((source) => source.harness === harness) ?? sourceHealth(harness);
-  const filtered = details.filter((detail) => (harness === "all" || detail.summary.harness === harness) && matches(detail, url));
-  if (url.pathname.endsWith("/tool-call-facets")) {
-    await route.fulfill({ json: facets(details.filter((detail) => harness === "all" || detail.summary.harness === harness), health) });
-    return;
-  }
-  if (url.pathname.endsWith("/tool-call-metrics")) {
-    await route.fulfill({ json: metrics(filtered, health) });
-    return;
-  }
-  if (url.pathname.endsWith("/tool-calls")) {
-    const offset = Number(url.searchParams.get("cursor") ?? "0");
-    const limit = Number(url.searchParams.get("limit") ?? "100");
-    const data = filtered.slice(offset, offset + limit).map((detail) => detail.summary);
-    const next = offset + data.length;
-    await route.fulfill({ json: { data, page: { nextCursor: next < filtered.length ? String(next) : null,
-      hasMore: next < filtered.length }, sourceHealth: health } });
-    return;
-  }
-  const id = decodeURIComponent(url.pathname.split("/").at(-1) ?? "");
-  const detail = details.find((candidate) => candidate.summary.harness === harness && candidate.summary.id === id);
-  await route.fulfill(detail ? { json: detail } : { status: 404, json: { title: "Not found", status: 404 } });
+  const response = await fetch(apiBase + url.pathname + url.search, { headers: route.request().headers() });
+  await route.fulfill({
+    status: response.status, headers: Object.fromEntries(response.headers), body: await response.text(),
+  });
 }
 
-async function mockApi(page: Page, details: ToolCallDetail[], path = "/", expected = details.length): Promise<void> {
+async function mockApi(page: Page, apiServer: ApiServer, details: ToolCallDetail[], path = "/", expected = details.length): Promise<void> {
   await page.clock.install({ time: now });
   const harnesses = [...new Set(details.map((detail) => detail.summary.harness))];
-  const list: HarnessList = { data: harnesses.map((harness) => descriptor(harness,
-    details.some((detail) => detail.summary.harness === harness && detail.summary.agentId !== null))),
-    sourceHealth: harnesses.map((harness) => sourceHealth(harness)), demo: false };
-  await page.route("**/api/v1/**", (route) => fulfillApi(route, details, list));
+  const apiBase = apiServer(async () => fixtureSnapshot(details, harnesses));
+  await page.route("**/api/v1/**", (route) => fulfillApi(route, apiBase));
   await page.goto(path);
   await expect(page.locator("#stat-calls")).toHaveText(String(expected));
 }
@@ -158,19 +119,19 @@ test("committed test data renders both harnesses through REST", async ({ page })
   await expect(page.getByLabel("Filter by agent")).toBeVisible();
 });
 
-test("invalid harness falls back and empty sources show onboarding", async ({ page }) => {
-  const list: HarnessList = { data: [], sourceHealth: [sourceHealth()], demo: false };
-  await page.route("**/api/v1/**", (route) => fulfillApi(route, [], list));
+test("invalid harness falls back and empty sources show onboarding", async ({ page, apiServer }) => {
+  const apiBase = apiServer(async () => fixtureSnapshot([], ["codex"], []));
+  await page.route("**/api/v1/**", (route) => fulfillApi(route, apiBase));
   await page.goto("/?harness=missing");
   await expect(page.getByText("No harness data")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Waiting for your first tool call" })).toBeVisible();
   await expect(page.locator("#empty-message")).toContainText("Your local logs will appear here");
 });
 
-test("filters query the server, update metrics, URL, and reset", async ({ page }) => {
+test("filters query the server, update metrics, URL, and reset", async ({ page, apiServer }) => {
   const calls = [call(0), call(1, { tool: "read_file", inputSummary: "notes.txt", lifecycle: "awaiting",
     finishedAt: null, durationMs: null }), call(120)];
-  await mockApi(page, calls, "/?harness=codex&q=command-120", 1);
+  await mockApi(page, apiServer, calls, "/?harness=codex&q=command-120", 1);
   await expect(page.locator("#rows > tr")).toHaveCount(1);
   await expect(page).toHaveURL(/q=command-120/);
   await page.getByRole("button", { name: "Reset", exact: true }).click();
@@ -190,23 +151,170 @@ test("filters query the server, update metrics, URL, and reset", async ({ page }
   await expect(page.locator("#rows > tr")).toHaveCount(3);
 });
 
-test("cursor pagination appends unique pages", async ({ page }) => {
-  await mockApi(page, Array.from({ length: 205 }, (_, index) => call(index)));
+test("cursor pagination appends unique pages", async ({ page, apiServer }) => {
+  await mockApi(page, apiServer, Array.from({ length: 205 }, (_, index) => call(index)));
   await expect(page.locator("#rows > tr")).toHaveCount(100);
   await page.getByRole("button", { name: "Show more" }).click();
   await expect(page.locator("#rows > tr")).toHaveCount(200);
   await page.getByRole("button", { name: "Show more" }).click();
   await expect(page.locator("#rows > tr")).toHaveCount(205);
   await expect(page.getByRole("button", { name: "Show more" })).toBeHidden();
+  await page.clock.runFor(5_000);
+  await expect(page.locator("#rows > tr")).toHaveCount(205);
+  await expect(page.getByRole("button", { name: "Show more" })).toBeHidden();
 });
 
-test("inspector uses accessible dialog and tabs, preserves payload text, and copies JSON", async ({ page, context }) => {
+test("time-filtered pagination remains valid across minute changes", async ({ page, apiServer }) => {
+  await mockApi(page, apiServer, Array.from({ length: 205 }, (_, index) => call(index)), "/?range=24");
+  await expect(page.locator("#rows > tr")).toHaveCount(100);
+  await page.clock.fastForward(61_000);
+  await page.getByRole("button", { name: "Show more" }).click();
+  await expect(page.locator("#rows > tr")).toHaveCount(200);
+  await page.getByRole("button", { name: "Show more" }).click();
+  await expect(page.locator("#rows > tr")).toHaveCount(205);
+  await expect(page.locator("#error")).toBeHidden();
+});
+
+test("live filtering removes completed calls while their inspector updates", async ({ page, apiServer }) => {
+  const value = call(0, { lifecycle: "awaiting", finishedAt: null, durationMs: null });
+  await mockApi(page, apiServer, [value], "/?lifecycle=awaiting");
+  await page.locator("#rows > tr").click();
+  await page.getByRole("tab", { name: "Result", exact: true }).click();
+  await expect(page.getByRole("tabpanel")).toContainText("No matching result");
+  value.summary = { ...value.summary, lifecycle: "finished", finishedAt: now.toISOString(), durationMs: 120 };
+  await page.clock.runFor(2_100);
+  await expect(page.locator("#rows > tr")).toHaveCount(0);
+  await expect(page.locator("#stat-calls")).toHaveText("0");
+  await expect(page.locator("#detail-status")).toHaveText("Result received");
+  await expect(page.getByRole("tab", { name: "Result", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel")).toContainText("result-0");
+  await page.getByRole("button", { name: "Close call details" }).click();
+  await expect(page.getByRole("searchbox")).toBeFocused();
+});
+
+test("live time windows remove expired calls", async ({ page, apiServer }) => {
+  await mockApi(page, apiServer, [call(59)], "/?range=1");
+  await page.clock.fastForward(120_000);
+  await expect(page.locator("#rows > tr")).toHaveCount(0);
+  await expect(page.locator("#stat-calls")).toHaveText("0");
+});
+
+test("selecting the current harness while paused preserves the collection", async ({ page, apiServer }) => {
+  await mockApi(page, apiServer, [call(0)]);
+  await page.getByRole("button", { name: /Live updates/ }).click();
+  await page.getByRole("button", { name: "All harnesses", exact: true }).click();
+  await page.clock.runFor(5_000);
+  await expect(page.locator("#rows > tr")).toHaveCount(1);
+});
+
+test("detail failures survive healthy polls and retry without closing", async ({ page, apiServer }) => {
+  await mockApi(page, apiServer, [call(0)]);
+  let fail = true;
+  await page.route("**/api/v1/harnesses/codex/tool-calls/call-0", async (route) => {
+    if (fail) await route.fulfill({ status: 500, json: { detail: "Details unavailable" } });
+    else await route.fallback();
+  });
+  await page.locator("#rows > tr").click();
+  await expect(page.locator("#inspector [role=alert]")).toContainText("Details unavailable");
+  await page.clock.runFor(5_000);
+  await expect(page.locator("#inspector [role=alert]")).toContainText("Details unavailable");
+  await expect(page.locator("#error")).toBeHidden();
+  fail = false;
+  await page.getByRole("button", { name: "Retry details", exact: true }).click();
+  await expect(page.getByRole("tabpanel")).toContainText("command-0");
+  await expect(page.locator("#inspector [role=alert]")).toHaveCount(0);
+});
+
+test("paused activity failures retry without resuming updates", async ({ page, apiServer }) => {
+  await mockApi(page, apiServer, [call(0)]);
+  let fail = true;
+  await page.route("**/api/v1/**", async (route) => {
+    if (fail && new URL(route.request().url()).pathname.endsWith("/tool-call-metrics")) {
+      await route.fulfill({ status: 500, json: { detail: "Activity unavailable" } });
+    } else await route.fallback();
+  });
+  await page.getByRole("button", { name: /Live updates/ }).click();
+  await expect(page.locator("#error")).toContainText("Activity unavailable");
+  fail = false;
+  await page.getByRole("button", { name: "Retry connection", exact: true }).click();
+  await expect(page.locator("#error")).toBeHidden();
+  await expect(page.locator("#rows > tr")).toHaveCount(1);
+  await expect(page.locator("#live-label")).toHaveText("Updates paused");
+});
+
+test("initial discovery failure exposes a working retry", async ({ page, apiServer }) => {
+  const apiBase = apiServer(async () => fixtureSnapshot([call(0)], ["codex"]));
+  let fail = true;
+  await page.route("**/api/v1/**", async (route) => {
+    if (fail && new URL(route.request().url()).pathname === "/api/v1/harnesses") {
+      await route.fulfill({ status: 500, json: { detail: "Discovery unavailable" } });
+    } else await fulfillApi(route, apiBase);
+  });
+  await page.goto("/");
+  await expect(page.locator("#error")).toContainText("Discovery unavailable");
+  fail = false;
+  await page.getByRole("button", { name: "Retry connection", exact: true }).click();
+  await expect(page.locator("#error")).toBeHidden();
+  await expect(page.locator("#rows > tr")).toHaveCount(1);
+});
+
+test("activity failure preserves a pending detail request", async ({ page, apiServer }) => {
+  await mockApi(page, apiServer, [call(0)]);
+  const pending = Promise.withResolvers<void>();
+  const started = Promise.withResolvers<void>();
+  await page.route("**/api/v1/harnesses/codex/tool-calls/call-0", async (route) => {
+    started.resolve();
+    await pending.promise;
+    await route.fallback();
+  });
+  await page.route("**/api/v1/**", async (route) => {
+    if (new URL(route.request().url()).pathname.endsWith("/tool-call-metrics")) {
+      await route.fulfill({ status: 500, json: { detail: "Activity unavailable" } });
+    } else await route.fallback();
+  });
+  try {
+    await page.locator("#rows > tr").click();
+    await started.promise;
+    await page.clock.runFor(2_100);
+    await expect(page.locator("#error")).toContainText("Activity unavailable");
+    await expect(page.getByRole("status", { name: "Loading call details" })).toBeVisible();
+    pending.resolve();
+    await expect(page.getByRole("tabpanel")).toContainText("command-0");
+    await expect(page.locator("#error")).toContainText("Activity unavailable");
+  } finally {
+    pending.resolve();
+  }
+});
+
+test("late detail responses cannot overwrite a newer selection", async ({ page, apiServer }) => {
+  await mockApi(page, apiServer, [call(0), call(1)]);
+  const pending = Promise.withResolvers<void>();
+  const started = Promise.withResolvers<void>();
+  await page.route("**/api/v1/harnesses/codex/tool-calls/call-0", async (route) => {
+    started.resolve();
+    await pending.promise;
+    await route.fallback();
+  });
+  try {
+    await page.locator("#rows > tr").first().click();
+    await started.promise;
+    await page.locator("#rows > tr").nth(1).click();
+    await expect(page.getByRole("tabpanel")).toContainText("command-1");
+    pending.resolve();
+    await expect(page.getByRole("tabpanel")).toContainText("command-1");
+    await expect(page.locator("#inspector [role=alert]")).toHaveCount(0);
+  } finally {
+    pending.resolve();
+  }
+});
+
+test("inspector uses accessible dialog and tabs, preserves payload text, and copies JSON", async ({ page, context, apiServer }) => {
   const value = call(0);
   const payload = '<img src="/injected-image" onerror="document.title=\'injected\'">';
   value.input = { command: payload };
   value.output = { html: payload };
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await mockApi(page, [value]);
+  await mockApi(page, apiServer, [value]);
   const row = page.locator("#rows > tr").first();
   await row.focus();
   await page.keyboard.press("Enter");
@@ -234,9 +342,9 @@ test("inspector uses accessible dialog and tabs, preserves payload text, and cop
   await expect(page).toHaveTitle("Tool activity · Tool Logger");
 });
 
-test("responsive layout keeps navigation and inspector usable", async ({ page }) => {
+test("responsive layout keeps navigation and inspector usable", async ({ page, apiServer }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await mockApi(page, [call(0)]);
+  await mockApi(page, apiServer, [call(0)]);
   await expect(page.locator(".sidebar")).toHaveCount(0);
   await expect(page.getByRole("group", { name: "Filter by harness" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
@@ -249,9 +357,9 @@ test("responsive layout keeps navigation and inspector usable", async ({ page })
   expect(bounds?.width).toBe(390);
 });
 
-test("theme follows the system initially and preserves an explicit choice", async ({ page }) => {
+test("theme follows the system initially and preserves an explicit choice", async ({ page, apiServer }) => {
   await page.emulateMedia({ colorScheme: "dark" });
-  await mockApi(page, [call(0)]);
+  await mockApi(page, apiServer, [call(0)]);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.getByRole("button", { name: "Switch to light mode" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
@@ -261,8 +369,8 @@ test("theme follows the system initially and preserves an explicit choice", asyn
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
 
-test("desktop inspector stays beside usable calls and follows their selection", async ({ page }) => {
-  await mockApi(page, [call(0), call(1)]);
+test("desktop inspector stays beside usable calls and follows their selection", async ({ page, apiServer }) => {
+  await mockApi(page, apiServer, [call(0), call(1)]);
   const rows = page.locator("#rows > tr");
   await rows.first().click();
   const dialog = page.getByRole("dialog", { name: "Tool call details" });
@@ -279,9 +387,9 @@ test("desktop inspector stays beside usable calls and follows their selection", 
   await expect(rows.nth(1)).toBeFocused();
 });
 
-test("combined scope filters both harnesses and loads native detail from its own source", async ({ page }) => {
+test("combined scope filters both harnesses and loads native detail from its own source", async ({ page, apiServer }) => {
   const mixed = [call(0), call(1, { harness: "opencode", tool: "read", outcome: "failure", agentId: "build" })];
-  await mockApi(page, mixed);
+  await mockApi(page, apiServer, mixed);
   await expect(page.getByRole("button", { name: "All harnesses", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#stat-completed")).toHaveText("2");
   await page.getByRole("button", { name: "Codex", exact: true }).click();
@@ -303,9 +411,9 @@ test("combined scope filters both harnesses and loads native detail from its own
   await expect(page.locator("#stat-calls")).toHaveText("2");
 });
 
-test("pausing holds activity until updates resume", async ({ page }) => {
+test("pausing holds activity until updates resume", async ({ page, apiServer }) => {
   const calls = [call(0)];
-  await mockApi(page, calls);
+  await mockApi(page, apiServer, calls);
   await page.getByRole("button", { name: /Live updates/ }).click();
   await expect(page.locator("#live-label")).toHaveText("Updates paused");
   // Let the pause transition's initial read settle, then append a new observed call.
@@ -317,8 +425,8 @@ test("pausing holds activity until updates resume", async ({ page }) => {
   await expect(page.locator("#stat-calls")).toHaveText("2");
 });
 
-test("filtered empty state suggests recovery", async ({ page }) => {
-  await mockApi(page, [call(0)], "/?q=no-such-command", 0);
+test("filtered empty state suggests recovery", async ({ page, apiServer }) => {
+  await mockApi(page, apiServer, [call(0)], "/?q=no-such-command", 0);
   await expect(page.getByRole("heading", { name: "No matching calls" })).toBeVisible();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(page.locator("#stat-calls")).toHaveText("1");
