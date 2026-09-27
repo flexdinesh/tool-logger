@@ -3,10 +3,13 @@ import { once } from "node:events";
 import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createServer } from "node:http";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
 import { createViewer } from "../src/server.ts";
 import { LogStore } from "../src/server/repository/log-store.ts";
+import { RestApi } from "../src/server/rest.ts";
+import { groupCodexCalls } from "../src/server/harnesses/codex.ts";
 import {
   parseHarnessList,
   parseToolCallDetail,
@@ -102,6 +105,40 @@ test("REST resources expose summaries, lazy details, facets, and metrics", async
   assert.equal(metrics.data.averageDurationMs, 200);
 });
 
+test("metrics support large histories without argument-count limits", async (t) => {
+  const start = Date.parse("2026-09-13T01:00:00.000Z");
+  const count = 150_000;
+  const sample = groupCodexCalls([{ logged_at: new Date(start).toISOString(),
+    event: { hook_event_name: "PreToolUse", tool_name: "Bash", tool_use_id: "one" } }])[0];
+  assert.ok(sample);
+  const calls = Array.from({ length: count }, (_, index) => ({ ...sample,
+    id: String(index), time: new Date(start + index * 1_000).toISOString() }));
+  const api = new RestApi(async () => ({ demo: false, harnesses: [{
+    harness: "codex", label: "Codex", apiVersion: null, calls, source: "fixture",
+    missing: false, truncated: false, skipped: 0, totalEvents: count, error: "",
+  }] }));
+  const server = createServer((request, response) => {
+    void api.handle(request, response, new URL(request.url ?? "/", "http://localhost"));
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => new Promise<void>((resolve, reject) => {
+    server.closeAllConnections();
+    server.close((error) => error ? reject(error) : resolve());
+  }));
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const response = await fetch(`http://127.0.0.1:${address.port}/api/v1/harnesses/codex/tool-call-metrics`);
+  assert.equal(response.status, 200);
+  const metrics = parseToolCallMetrics(await value(response));
+  assert.equal(metrics.data.totalCalls, count);
+  assert.equal(metrics.data.awaitingCalls, count);
+  assert.deepEqual(metrics.data.window, {
+    since: new Date(start).toISOString(), until: new Date(start + (count - 1) * 1_000 + 1).toISOString(),
+  });
+  assert.equal(metrics.data.activity.reduce((total, bin) => total + bin.count, 0), count);
+});
+
 test("REST validates queries, methods, cursors, and conditional requests", async (t) => {
   const base = await fixture(t);
   const resource = `${base}/api/v1/harnesses/codex/tool-calls?limit=1`;
@@ -135,6 +172,12 @@ test("append-aware store reads only complete new records and updates existing ca
   const completed = await store.snapshot();
   assert.equal(completed.harnesses[0]?.totalEvents, 2);
   assert.equal(completed.harnesses[0]?.calls[0]?.status, "completed");
+
+  writeFileSync(source, record("PreToolUse", "two", "2026-09-13T02:00:00.000Z"));
+  const truncated = await store.snapshot();
+  assert.equal(truncated.harnesses[0]?.calls.length, 1);
+  assert.equal(truncated.harnesses[0]?.calls[0]?.callId, "two");
+  assert.equal(truncated.harnesses[0]?.calls[0]?.status, "awaiting");
 
   rmSync(source);
   assert.equal((await store.snapshot()).harnesses[0]?.missing, true);

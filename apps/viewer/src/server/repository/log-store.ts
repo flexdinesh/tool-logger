@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { open } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
-import type { HarnessDataset, LogRecord, Snapshot } from "../../model.ts";
+import type { HarnessDataset, LogRecord, Snapshot, ToolCall } from "../../model.ts";
 import { harnessPaths, readHomeDirectory, stateDirectory } from "../../logs.ts";
 import { harnessAdapter } from "../harnesses/registry.ts";
 
@@ -15,6 +15,8 @@ type Cache = {
   offset: number;
   remainder: Buffer;
   records: LogRecord[];
+  calls: ToolCall[];
+  projectedRecords: number;
   skipped: number;
   reset: boolean;
 };
@@ -108,17 +110,20 @@ export class LogStore {
         || cache.inode !== stat.ino || stat.size < cache.offset);
       if (!cache || replaced) {
         cache = { source: item.source, device: stat.dev, inode: stat.ino, offset: 0,
-          remainder: Buffer.alloc(0), records: [], skipped: 0, reset: replaced };
+          remainder: Buffer.alloc(0), records: [], calls: [], projectedRecords: -1, skipped: 0, reset: replaced };
         this.caches.set(item.harness, cache);
       }
       await readAppended(file, cache, stat.size, item.harness);
       const adapter = harnessAdapter(item.harness);
       if (!adapter) throw new Error(`unsupported harness: ${item.harness}`);
-      const calls = adapter.calls(cache.records);
+      if (cache.projectedRecords !== cache.records.length) {
+        cache.calls = adapter.calls(cache.records);
+        cache.projectedRecords = cache.records.length;
+      }
       const apiVersion = item.harness === "opencode" && cache.records.some((record) => record.api_version === 2)
         ? 2 : item.harness === "opencode" && cache.records.some((record) => record.api_version === 1) ? 1 : null;
       return {
-        ...base, apiVersion, calls, skipped: cache.skipped, totalEvents: cache.records.length,
+        ...base, apiVersion, calls: cache.calls, skipped: cache.skipped, totalEvents: cache.records.length,
         truncated: cache.reset,
       };
     } catch (error) {

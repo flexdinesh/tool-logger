@@ -310,9 +310,15 @@ function metricData(calls: ProjectedCall[], query: Query): ToolCallMetrics["data
   const durations = summaries.flatMap((call) => call.durationMs === null ? [] : [call.durationMs]);
   const known = summaries.filter((call) => call.outcome !== "unknown");
   const failures = summaries.filter((call) => call.outcome === "failure").length;
-  const times = summaries.map((call) => Date.parse(call.observedAt));
-  const end = query.until ?? (times.length ? Math.max(...times) + 1 : Date.now());
-  const start = query.since ?? (times.length ? Math.min(...times) : end - 3_600_000);
+  let earliest = Infinity;
+  let latest = -Infinity;
+  for (const call of summaries) {
+    const time = Date.parse(call.observedAt);
+    earliest = Math.min(earliest, time);
+    latest = Math.max(latest, time);
+  }
+  const end = query.until ?? (summaries.length ? latest + 1 : Date.now());
+  const start = query.since ?? (summaries.length ? earliest : end - 3_600_000);
   const width = Math.max(end - start, 1);
   const bucketCount = Math.min(36, Math.ceil(width));
   const activity = Array.from({ length: bucketCount }, (_, index): { start: string; count: number; harnesses: Record<string, number> } =>

@@ -10,6 +10,7 @@ import { GitSnapshots } from "./git-snapshots.tsx";
 import { MetadataFields } from "./metadata-fields.tsx";
 import { PayloadPanel } from "./payload-panel.tsx";
 import { Button } from "./ui/button.tsx";
+import { Alert } from "./ui/alert.tsx";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "./ui/sheet.tsx";
 
 function attribute(call: ToolCallDetail, key: string): string {
@@ -47,7 +48,7 @@ function isDesktop() {
   return window.matchMedia(desktopQuery).matches;
 }
 
-export function Inspector({ call, loading, error, descriptor, tab, onTabChange, returnFocusRef, searchRef, onClose }: {
+export function Inspector({ call, loading, error, descriptor, tab, onTabChange, returnFocusRef, searchRef, onClose, onRetry }: {
   call: ToolCallDetail | undefined;
   loading: boolean;
   error: string;
@@ -57,6 +58,7 @@ export function Inspector({ call, loading, error, descriptor, tab, onTabChange, 
   returnFocusRef: RefObject<HTMLElement | null>;
   searchRef: RefObject<HTMLInputElement | null>;
   onClose: () => void;
+  onRetry: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const docked = useSyncExternalStore(subscribeToViewport, isDesktop, () => false);
@@ -92,6 +94,7 @@ export function Inspector({ call, loading, error, descriptor, tab, onTabChange, 
           <SheetTitle id="detail-tool" className="text-xl font-semibold tracking-tight wrap-break-word">{summary?.tool ?? "Call details"}</SheetTitle>
           <Button ref={closeRef} id="close" variant="ghost" size="icon" aria-label="Close call details" onClick={onClose}><X aria-hidden="true" /></Button>
         </SheetHeader>
+        {error && <Alert>{error} <Button variant="ghost" size="compact" disabled={loading} onClick={onRetry}>Retry details</Button></Alert>}
         {call && summary ? <>
         <div id="detail-status"><CallStatus call={summary} descriptor={descriptor} /></div>
         <dl id="metadata" className="my-4 grid grid-cols-[72px_minmax(0,1fr)] gap-2 border-y border-border py-3 text-xs">
@@ -114,7 +117,7 @@ export function Inspector({ call, loading, error, descriptor, tab, onTabChange, 
         <GitSnapshots call={call} />
         <p className="detail-note text-xs leading-5 text-muted">{descriptor?.capabilities.outcomeSemantics[summary.outcome]
           ?? "Inspect native events for harness-specific result details."}</p>
-        </> : loading ? <div className="calls-loading" role="status" aria-label="Loading call details"><div /><div /><div /></div> : <p role="alert" className="text-sm text-destructive">{error || "Call details unavailable."} Close and reopen this call to retry.</p>}
+        </> : loading ? <div className="calls-loading" role="status" aria-label="Loading call details"><div /><div /><div /></div> : !error && <p role="alert" className="text-sm text-destructive">Call details unavailable.</p>}
       </SheetContent>
     </Sheet>
   );

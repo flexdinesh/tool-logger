@@ -1,6 +1,7 @@
 import { Charts } from "../components/charts.tsx";
 import { Stats } from "../components/stats.tsx";
 import { Alert } from "../components/ui/alert.tsx";
+import { Button } from "../components/ui/button.tsx";
 import { useViewerActions, useViewerState } from "../state/viewer-context.ts";
 
 export function ActivityHeading() {
@@ -24,8 +25,10 @@ export function ActivityOverview() {
 }
 
 export function ConnectionNotice() {
-  const { error } = useViewerState();
-  return <Alert id="error" className="connection-notice" hidden={!error}>{error}</Alert>;
+  const { error, harnessError } = useViewerState();
+  const { retry } = useViewerActions();
+  const message = [harnessError, error].filter(Boolean).join(" ");
+  return <Alert id="error" className="connection-notice" hidden={!message}>{message} <Button variant="ghost" size="compact" onClick={retry}>Retry connection</Button></Alert>;
 }
 
 export function LogSource() {

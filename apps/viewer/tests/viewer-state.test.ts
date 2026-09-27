@@ -38,14 +38,14 @@ function harnesses(): HarnessList {
   ], sourceHealth: [health(), health("opencode")], demo: false };
 }
 
-function resources(calls: ToolCallSummary[]): ViewerAction {
+function resources(calls: ToolCallSummary[], hasMore = false): ViewerAction {
   const facets: ToolCallFacets = { data: { tools: [], sessions: [], agents: [], repositories: [], directories: [],
     lifecycles: [], outcomes: [] }, sourceHealth: health() };
   const metrics: ToolCallMetrics = { data: { totalCalls: calls.length, completedCalls: 0, awaitingCalls: calls.length,
     successCalls: 0, failureCalls: 0, unknownCalls: calls.length, averageDurationMs: null, failureRate: null,
     window: { since: null, until: null }, activity: [], toolUsage: [] }, sourceHealth: health() };
   return { type: "resourcesReceived", calls, facets, metrics, health: health(),
-    nextCursor: null, hasMore: false, updated: "now" };
+    nextCursor: hasMore ? "next" : null, hasMore, updated: "now" };
 }
 
 test("selects requested available harness and loads REST resources", () => {
@@ -72,11 +72,13 @@ test("detail response preserves selection and payload tab across refresh", () =>
   assert.equal(state.payloadTab, "output");
 });
 
-test("pagination appends unique calls and updates cursor", () => {
-  let state = viewerReducer(initialViewerState, resources([summary("one")]));
+test("pagination requests another page and adopts the refreshed collection", () => {
+  let state = viewerReducer(initialViewerState, resources([summary("one")], true));
   state = viewerReducer(state, { type: "moreRequested" });
-  state = viewerReducer(state, { type: "moreReceived", calls: [summary("one"), summary("two")], health: health(),
-    nextCursor: "next", hasMore: true });
+  assert.equal(state.pageCount, 2);
+  assert.equal(state.loadingMore, true);
+  assert.equal(viewerReducer(state, { type: "moreRequested" }), state);
+  state = viewerReducer(state, resources([summary("two"), summary("one")], true));
   assert.deepEqual(state.calls.map((call) => call.id), ["two", "one"]);
   assert.equal(state.nextCursor, "next");
   assert.equal(state.loadingMore, false);
@@ -89,12 +91,66 @@ test("connection failure preserves data and user state", () => {
   state = viewerReducer(state, { type: "callSelected", id: call.id });
   state = viewerReducer(state, { type: "detailReceived", detail: detail(call) });
   state = viewerReducer(state, { type: "payloadTabChanged", tab: "raw" });
-  state = viewerReducer(state, { type: "connectionFailed", message: "offline" });
+  state = viewerReducer(state, { type: "resourcesFailed", message: "offline" });
   assert.deepEqual(state.calls.map((entry) => entry.id), ["one"]);
   assert.equal(state.filters.tool, "Bash");
   assert.equal(state.selectedCall?.summary.id, "one");
   assert.equal(state.payloadTab, "raw");
   assert.equal(state.error, "offline");
+});
+
+test("refresh removes calls that stop matching and preserves exhausted pagination", () => {
+  let state = viewerReducer(initialViewerState, resources([summary("one"), summary("two")]));
+  state = viewerReducer(state, resources([summary("two")]));
+  assert.deepEqual(state.calls.map((call) => call.id), ["two"]);
+  assert.equal(state.hasMore, false);
+  assert.equal(state.nextCursor, null);
+  assert.equal(viewerReducer(state, { type: "moreRequested" }), state);
+  state = viewerReducer(state, resources([]));
+  assert.deepEqual(state.calls, []);
+  assert.equal(state.metrics?.data.totalCalls, 0);
+});
+
+test("request failures and recovery affect only their owner", () => {
+  const call = summary("one");
+  let state = viewerReducer(initialViewerState, resources([call], true));
+  state = viewerReducer(state, { type: "callSelected", id: call.id });
+  state = viewerReducer(state, { type: "moreRequested" });
+  state = viewerReducer(state, { type: "harnessesFailed", message: "discovery offline" });
+  assert.equal(state.loadingMore, true);
+  assert.equal(state.detailLoading, true);
+  state = viewerReducer(state, { type: "resourcesFailed", message: "activity offline" });
+  assert.equal(state.loadingMore, false);
+  assert.equal(state.detailLoading, true);
+  state = viewerReducer(state, { type: "detailFailed", message: "details offline" });
+  state = viewerReducer(state, resources([call]));
+  assert.equal(state.error, "");
+  assert.equal(state.harnessError, "discovery offline");
+  assert.equal(state.detailError, "details offline");
+  state = viewerReducer(state, { type: "resourcesFailed", message: "activity offline" });
+  state = viewerReducer(state, { type: "detailReceived", detail: detail(call) });
+  assert.equal(state.detailError, "");
+  assert.equal(state.error, "activity offline");
+  assert.equal(state.harnessError, "discovery offline");
+});
+
+test("selection retains its harness when a filtered call disappears", () => {
+  const call = summary("one", "opencode");
+  let state = viewerReducer(initialViewerState, resources([call]));
+  state = viewerReducer(state, { type: "callSelected", id: call.id });
+  state = viewerReducer(state, resources([]));
+  assert.equal(state.selectedCallHarness, "opencode");
+  state = viewerReducer(state, { type: "detailReceived", detail: detail({ ...call, lifecycle: "finished" }) });
+  assert.equal(state.selectedCall?.summary.lifecycle, "finished");
+  assert.equal(viewerReducer(state, { type: "callSelected", id: call.id }), state);
+});
+
+test("selecting the current harness while paused preserves calls and filters", () => {
+  let state = viewerReducer(initialViewerState, { type: "harnessesReceived", value: harnesses(), requestedHarness: null });
+  state = viewerReducer(state, resources([summary("one")]));
+  state = viewerReducer(state, { type: "filterChanged", key: "tool", value: "Bash" });
+  state = viewerReducer(state, { type: "liveToggled" });
+  assert.equal(viewerReducer(state, { type: "harnessSelected", harness: "all" }), state);
 });
 
 test("harness selection resets harness-specific state", () => {
