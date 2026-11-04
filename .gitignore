@@ -4,3 +4,6 @@ node_modules/
 apps/*/dist/
 apps/*/test-results/
 apps/*/playwright-report/
+apps/desktop/build/
+apps/desktop/.mygo/
+apps/desktop/tool-logger

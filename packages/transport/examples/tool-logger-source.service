@@ -1,0 +1,15 @@
+[Unit]
+Description=Tool Logger source delivery
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=TOOL_LOGGER_STATE_DIR=%h/.local/state/tool-logger
+ExecStart=/usr/local/bin/node /absolute/plugin/transport/cli.ts run
+Restart=always
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

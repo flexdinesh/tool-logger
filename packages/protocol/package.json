@@ -1,0 +1,15 @@
+{
+  "name": "@tool-logger/protocol",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.ts",
+    "check": "node generate.ts --check && redocly lint openapi.json && node --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.51.2",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1"
+  }
+}

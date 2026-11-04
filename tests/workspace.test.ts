@@ -83,7 +83,7 @@ test('check validates every plugin package but registers only Codex plugins', (t
   assert.throws(() => check(f.root), /catalog and Codex plugins differ/);
 });
 
-test('link preserves installed copy, points to live source, and is idempotent', (t) => {
+test('link installs fingerprintable snapshots, preserves previous copies, and refreshes explicitly', (t) => {
   const f = fixture(t);
   const calls: string[][] = [];
   const options = {
@@ -107,18 +107,18 @@ test('link preserves installed copy, points to live source, and is idempotent', 
       assert.deepEqual(readJson(join(f.cache, entry, 'plugin.json')), readJson(join(f.source, entry, 'plugin.json')));
       continue;
     }
-    assert.ok(lstatSync(join(f.cache, entry)).isSymbolicLink());
-    assert.equal(realpathSync(join(f.cache, entry)), realpathSync(join(f.source, entry)));
+    assert.equal(lstatSync(join(f.cache, entry)).isSymbolicLink(), false);
   }
   writeFileSync(join(f.source, 'scripts/changed.ts'), 'export const value = "live edit";');
-  assert.equal(readFileSync(join(f.cache, 'scripts/changed.ts'), 'utf8'), 'export const value = "live edit";');
+  assert.equal(existsSync(join(f.cache, 'scripts/changed.ts')), false);
   writeFileSync(join(f.source, 'new-root-file.txt'), 'new entry');
   linkCodexPlugin(f.root, 'codex-tool-logger', options);
+  assert.equal(readFileSync(join(f.cache, 'scripts/changed.ts'), 'utf8'), 'export const value = "live edit";');
   assert.equal(readFileSync(join(f.cache, 'new-root-file.txt'), 'utf8'), 'new entry');
   assert.equal(calls.length, 2);
   const backups = join(f.codexHome, 'plugins/local-link-backups');
   const names = readdirSync(backups);
-  assert.equal(names.length, 1);
+  assert.equal(names.length, 2);
   const backup = names[0];
   assert.ok(backup);
   assert.ok(existsSync(join(backups, backup, '.codex-plugin/plugin.json')));

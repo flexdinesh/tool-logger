@@ -28,7 +28,7 @@ function fixture(t: TestContext) {
   const temp = mkdtempSync(join(tmpdir(), 'codex logger '));
   t.after(() => rmSync(temp, { recursive: true, force: true }));
   const directory = join(temp, 'state');
-  const log = join(directory, 'codex-tool-calls.jsonl');
+  const log = join(directory, 'outbox', 'codex-tool-calls.jsonl');
   function run(input: string, command = process.execPath, args = [script], extraEnv = {}) {
     return new Promise<{ code: number; stdout: string; stderr: string }>((resolve, reject) => {
       const child = spawn(command, args, {
@@ -57,7 +57,7 @@ function records(path: string): Record<string, unknown>[] {
 
 test('preserves existing bytes and full pre/post events, with silent stdout', async (t) => {
   const f = fixture(t);
-  mkdirSync(f.directory);
+  mkdirSync(join(f.directory, 'outbox'), { recursive: true, mode: 0o700 });
   const prefix = '{"existing":true}\n';
   writeFileSync(f.log, prefix);
   const events = [event(), { ...event(0, 'PostToolUse'), tool_response: { ok: true } }];
@@ -77,6 +77,25 @@ test('preserves existing bytes and full pre/post events, with silent stdout', as
     assert.ok(record.hook === 'PreToolUse' || record.hook === 'PostToolUse');
     assert.ok(Number.isFinite(Date.parse(String(record.logged_at))));
   }
+});
+
+test('new hooks preserve legacy journal bytes and never wait for source HTTP configuration', async (t) => {
+  const f = fixture(t);
+  mkdirSync(f.directory, { mode: 0o700 });
+  const legacy = join(f.directory, 'codex-tool-calls.jsonl');
+  writeFileSync(legacy, 'legacy history\n');
+  writeFileSync(join(f.directory, 'source.json'), JSON.stringify({
+    schemaVersion: 1, sourceId: '550e8400-e29b-41d4-a716-446655440000',
+    endpoint: 'http://192.0.2.1:4317', token: 'unreachable-source-token', name: 'Offline', labels: {},
+  }), { mode: 0o600 });
+  const started = performance.now();
+  const result = await f.invoke(event());
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stdout, '');
+  assert.ok(performance.now() - started < 3_000);
+  assert.equal(records(f.log).length, 1);
+  assert.equal(readFileSync(legacy, 'utf8'), 'legacy history\n');
+  assert.equal(existsSync(join(f.directory, 'outbox/checkpoint.json')), false);
 });
 
 test('40 concurrent processes preserve large records without loss or interleaving', async (t) => {
@@ -111,6 +130,7 @@ test('state preserves the original host home and never rewrites existing state o
   const path = join(f.directory, 'state.json');
   const initial = readFileSync(path);
   const modified = statSync(path).mtimeMs;
+  mkdirSync(join(f.directory, 'outbox'), { mode: 0o700 });
   writeFileSync(f.log, 'existing log bytes\n');
   ensureState(f.directory, '/root');
   assert.deepEqual(readFileSync(path), initial);
@@ -207,7 +227,7 @@ test('default path uses home/.local/state; supports explicit state override', (t
   const directory = stateDirectory('', f.temp);
   assert.equal(directory, join(f.temp, '.local/state/tool-logger'));
   appendEvent(event(), directory);
-  assert.ok(existsSync(join(directory, 'codex-tool-calls.jsonl')));
+  assert.ok(existsSync(join(directory, 'outbox', 'codex-tool-calls.jsonl')));
   assert.equal(stateDirectory('~/custom', f.temp), join(f.temp, 'custom'));
   assert.equal(stateDirectory(f.directory), f.directory);
 });
@@ -226,7 +246,7 @@ test('invalid events and malformed JSON fail without policy output or writes', a
 
 test('refuses symlink log destination without modifying its target', async (t) => {
   const f = fixture(t);
-  mkdirSync(f.directory);
+  mkdirSync(join(f.directory, 'outbox'), { recursive: true, mode: 0o700 });
   const target = join(f.temp, 'keep.txt');
   writeFileSync(target, 'keep');
   symlinkSync(target, f.log);
@@ -246,7 +266,7 @@ test('write failures report failure without policy output', async (t) => {
 
 test('short writes fail without retrying fragments or overwriting history', (t) => {
   const f = fixture(t);
-  mkdirSync(f.directory);
+  mkdirSync(join(f.directory, 'outbox'), { recursive: true, mode: 0o700 });
   writeFileSync(f.log, 'existing\n');
   let calls = 0;
   assert.throws(() => appendEvent(event(), f.directory, (fd, data) => {

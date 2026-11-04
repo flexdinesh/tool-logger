@@ -1,0 +1,10 @@
+{
+  "name": "Tool Logger",
+  "slug": "tool-logger",
+  "identifier": "dev.tool-logger.desktop",
+  "version": "0.1.0",
+  "main": "./cmd/tool-logger",
+  "out": "build",
+  "urlSchemes": ["tool-logger"],
+  "linux": { "categories": ["Development"], "webview": false }
+}

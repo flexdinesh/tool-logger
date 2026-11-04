@@ -1,0 +1,13 @@
+{
+  "name": "@tool-logger/transport",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "26.x", "pnpm": "11.x" },
+  "scripts": {
+    "sync": "node sync.ts",
+    "check": "node sync.ts --check",
+    "test": "node --test --test-concurrency=1 tests/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "source": "node src/cli.ts"
+  }
+}

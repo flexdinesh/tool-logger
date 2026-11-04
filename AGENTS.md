@@ -1,21 +1,19 @@
-# Local plugin workspace
+# Tool Logger workspace
 
-- Organize the monorepo as:
-  - `plugins/codex-tool-logger/`: Codex plugin that logs Codex tool calls.
-  - `plugins/opencode-tool-logger/`: OpenCode plugin that logs OpenCode tool calls.
-  - `apps/viewer/`: read-only web server and UI for querying and visualizing append-only tool-call logs.
-- Keep plugins self-contained under `plugins/<name>/` and applications under `apps/<name>/`.
-- Keep package scripts local to the package that owns the runnable task.
-- Each plugin is a private pnpm workspace package. Use pnpm 11 and keep pnpm-lock.yaml current.
-- Register Codex plugins, and only Codex plugins, in `.agents/plugins/marketplace.json`.
-- Use local sources only. No publishing or runtime dependency on this repository's scripts.
-- Use TypeScript that runs directly on Node.js 26. Erasable syntax only; no build step for hooks, scripts, or servers. The viewer frontend uses React TSX and a Vite build.
-- Keep hook runtime dependencies limited to Node built-ins. Type-check with strict TypeScript.
-- Hook stdout affects Codex. Logging hooks must stay silent on stdout and never block tools.
-- Store all harness logs under one state directory: `~/.local/state/tool-logger/`, overridden as a directory by `TOOL_LOGGER_STATE_DIR`.
-- Keep one append-only log file per harness: `codex-tool-calls.jsonl` and `opencode-tool-calls.jsonl`.
-- Preserve append-only logging and serialization across concurrent processes. Never merge harness logs at write time.
-- Build viewer UI with Vite, React, Tailwind CSS, and shadcn/ui.
-- Use semantic token primitives and shared UI components. Follow top-level `DESIGN.md` for every visual change.
-- Define development commands in package.json scripts; use pnpm to run them.
-- Run `pnpm check` after changing plugin behavior or workspace tooling.
+- `plugins/codex-tool-logger/`, `plugins/opencode-tool-logger/`: self-contained private pnpm packages. Register only Codex plugins in `.agents/plugins/marketplace.json`.
+- `apps/desktop/`: one Go module, MyGo native UI and owned HTTP server, no webview or app container. Linux/macOS.
+- `packages/protocol/`: OpenAPI/schema source, generated artifacts, shared Go/TypeScript fixtures.
+- `packages/transport/`: Node built-ins only forwarder. Sync installed plugin copies and check drift after changes.
+- pnpm 11, current lockfile, package-local runnable scripts; root scripts aggregate checks.
+- Node 26 native TypeScript, strict erasable syntax, no hook build step, no `any`, assertions or non-null assertions.
+- Installed plugins run standalone. Codex requires regular-file snapshots for fingerprints. Relink refreshes owned snapshots and preserves prior copies. Never bypass hook trust.
+- Hooks silent on stdout, fail open, never wait on HTTP. Preserve complete native wrappers and serialized append-only writes across processes.
+- State `~/.local/state/tool-logger/`, overridden by `TOOL_LOGGER_STATE_DIR`. Separate per-harness journals under `outbox/`. Never import, modify, merge or delete legacy history automatically.
+- Source UUID defines identity; hostname/container labels are metadata. Scope correlation/deduplication by source.
+- Forwarder checkpoints advance after durable ACK only. Preserve rejects, retry temporary failures, bound memory/requests, surface errors. One supervised worker per source directory.
+- Server owns SQLite WAL, immutable events and transactional indexed projections. Result receipt does not establish success.
+- UI uses typed REST exclusively. Keep MyGo out of domain/harness/persistence/HTTP code. Explicit composition and small consumer-owned boundary interfaces; no generic repositories or service locators.
+- Loopback default; source write and administration credentials separate. Hash source tokens. No public-internet deployment scope.
+- Follow DESIGN.md semantic roles. Main-thread UI state; async results use Window.Update and reject stale responses.
+- Track parity in docs/native-parity.md. ui.Tester for views, real HTTP/SQLite boundary tests, automation in e2e builds only. Never claim skipped display/platform tests passed.
+- Run pnpm check for plugin/workspace changes. Native process automation for UI/lifecycle changes; platform packaging before handoff.

@@ -1,109 +1,83 @@
 # Tool Logger
 
-Log tool activity from supported coding harnesses and inspect it in a local web UI.
+Observe Codex and OpenCode tool calls in a native Linux/macOS application. Sources deliver complete native events over authenticated HTTP, including from remote hosts and containers. The app owns its REST server and SQLite database.
 
-Requires macOS or Linux, Node.js 26, pnpm 11, and a supported Codex or OpenCode installation.
+## Requirements
 
-## Packages
+Desktop development/builds need Go 1.27.3; Linux needs GTK 3. Packaged apps need no Node, browser, webview or Docker runtime. Sources need Node.js 26, Codex/OpenCode and persistent writable storage. Repository development uses pnpm 11.25.0.
 
-- `plugins/codex-tool-logger`: working Codex hooks and collector.
-- `plugins/opencode-tool-logger`: OpenCode V1/V2 plugin and collector.
-- `apps/viewer`: read-only Vite and React web UI plus its Node.js server.
-
-## Add the Codex plugin
-
-From this repository:
+## Start the native app
 
 ```sh
-pnpm install
-pnpm run link:codex codex-tool-logger
+pnpm install --frozen-lockfile
+pnpm --filter @tool-logger/desktop start
 ```
 
-If `tool-call-logger@tool-logger` was installed previously, remove it first. Keeping
-both IDs installed runs duplicate hooks.
+Use `pnpm --filter @tool-logger/desktop dev` for development rebuilds. Build platform packages with `pnpm --filter @tool-logger/desktop build`; output goes under `apps/desktop/build/`. Local packages are unsigned; signing is a separate release operation.
 
-Then:
-
-1. Restart Codex.
-2. Open `/hooks` in Codex.
-3. Review and trust the two Codex Tool Logger hooks.
-4. Start a new task and use any tool.
-
-The trusted hooks capture each tool call before and after it runs, then append the
-events to `~/.local/state/tool-logger/codex-tool-calls.jsonl`. Harness plugins use
-separate files in the same directory. Set `TOOL_LOGGER_STATE_DIR` to override that
-shared directory. Nothing is published.
-
-The viewer reads each available harness log independently. For Codex, it prefers
-`codex-tool-calls.jsonl`; if absent, it reads legacy `tool-calls.jsonl` in place
-without renaming, copying, or deleting it.
-
-## Add the OpenCode plugin
-
-From this repository:
+HTTP defaults to `127.0.0.1:4317`. Accept private-network/container sources by explicitly choosing a reachable listener:
 
 ```sh
-pnpm install
-pnpm run link:opencode opencode-tool-logger
+pnpm --filter @tool-logger/desktop start --listen 0.0.0.0:4317
 ```
 
-The linker detects the installed OpenCode generation and installs one global local
-plugin link. Restart OpenCode after linking. The linker selects V2 when both
-generations exist. Both generations can append to the same history; existing
-activation markers are ignored.
+`TOOL_LOGGER_LISTEN` also sets the listener. Closing the window keeps ingestion running. Reopen through the tray, Dock, or by launching again. Quit stops the application/server. Linux tray support needs the optional AppIndicator library; launching again reopens a hidden window without it.
 
-OpenCode events append to
-`~/.local/state/tool-logger/opencode-tool-calls.jsonl`. The shared
-`TOOL_LOGGER_STATE_DIR` override applies to both harnesses.
+## Connect a source
 
-## Run the viewer
+1. Open **Add source**, choose a meaningful name/labels and copy its configuration.
+2. Save it on that source in a private file (`chmod 600`). Adjust its endpoint to an address reachable from that source.
+3. Install the harness plugin and configure its included forwarder:
 
-With Docker Compose:
+   ```sh
+   pnpm run link:codex codex-tool-logger
+   # Or: pnpm run link:opencode opencode-tool-logger
+   pnpm --filter @tool-logger/transport source configure /private/source.json
+   pnpm --filter @tool-logger/transport source run
+   ```
+
+4. Restart the harness. In Codex, review and trust both hooks in `/hooks`. Use a tool and inspect its source/call.
+
+Run one supervised forwarder per state directory; both harnesses can share it. Installed plugins contain the complete worker under `transport/`. Sources have no runtime dependency on repository scripts or Go.
+
+Codex installs regular-file snapshots because hook fingerprints reject symlinked contents. Rerun `link:codex` after local plugin edits. Previous copies are backed up; Codex controls hook trust. OpenCode supports V1/V2, choosing V2 when both are installed.
+
+[Source deployment](packages/transport/README.md) covers systemd, launchd, Docker volumes/host networking, SSH reverse tunnels, token rotation and diagnostics. Only the source forwarder has a Docker example. The native app runs on the host.
+
+## Inspect activity
+
+Select sources/harnesses independently. Filter by search, tool, lifecycle, outcome, session, agent, repository, directory and time. Metrics/charts follow that scope. Load pages, pause updates, and select successive calls with the inspector open.
+
+Inspect input, result, native payloads, metadata and before/after Git snapshots. JSON remains selectable/copyable text. Result receipt does not prove success: Codex/OpenCode V1 outcomes remain unknown; V2 uses explicit native status. Themes/layout/view preferences persist. Activity links use `tool-logger://activity?...`.
+
+## Delivery and data
+
+State defaults to `~/.local/state/tool-logger/`; `TOOL_LOGGER_STATE_DIR` overrides it on desktop and sources.
+
+| Path | Owner/purpose |
+| --- | --- |
+| `collector/events.sqlite` | Desktop: immutable events, indexed projections, source records |
+| `collector/admin.token` | Desktop: private query/administration credential |
+| `source.json` | Source: private endpoint, UUID and write token |
+| `outbox/codex-tool-calls.jsonl` | Source: append-only Codex journal |
+| `outbox/opencode-tool-calls.jsonl` | Source: append-only OpenCode journal |
+| `outbox/checkpoint.json` | Source: durable acknowledgement positions |
+| `outbox/health.json`, `outbox/rejections.jsonl` | Source: diagnostics and retained rejection references |
+
+Hooks never wait for HTTP. The worker retries outages/replays after crashes; the server deduplicates source/event IDs and acknowledges after commit. Permanent rejects remain journaled and visible. Records over 8 MiB remain local with rejection references. Memory/requests are bounded; retained data is not automatically deleted.
+
+This release starts fresh. Legacy root-level logs are neither imported nor modified. Independent hosts/containers need distinct source identities and persistent configurations/journals.
+
+Full inputs/results can contain private code/credentials. Source tokens cannot read activity or administer sources. HTTP tokens authenticate; SSH, VPN or HTTPS supplies encryption. Public-internet hosting is outside this release.
+
+## Verification
 
 ```sh
-mkdir -p ~/.local/state/tool-logger
-docker compose up -d
+pnpm check
+pnpm --filter @tool-logger/desktop test:e2e
+pnpm --filter @tool-logger/desktop bench
 ```
 
-Or run the server directly through the viewer workspace:
+Native process tests need a desktop session. On headless Linux: `xvfb-run -a pnpm --filter @tool-logger/desktop test:e2e`. Tests use synthetic temporary state. CI checks Linux/macOS, native automation and packaging. Real harness loader tests run when their CLIs are installed; Docker/SSH tests exercise available network dependencies.
 
-```sh
-pnpm --filter viewer build
-pnpm --filter viewer start
-```
-
-`start` incrementally reads available harness logs from the configured state
-directory. The dashboard opens with all harnesses in one chronological view.
-Use the inline All harnesses / Codex / OpenCode control to scope the trace, metrics,
-filters, and calls. Expand Filters for status, tool, session, agent, and repository
-context; open any call to inspect its native payloads. For UI development, run
-`pnpm --filter viewer dev`; it reads the committed Codex and OpenCode synthetic
-fixtures and rebases their timestamps to the current time. Run
-`pnpm --filter viewer test-data` to serve those fixtures from a production build.
-
-The direct server binds to loopback by default:
-
-```text
-Viewer:
-  127.0.0.1: http://127.0.0.1:4317
-```
-
-- Open `http://127.0.0.1:4317` on the same machine.
-- Set `PORT=4318` before either start command to change the port.
-- Set `HOST=0.0.0.0` for direct LAN access.
-- Set `VIEWER_BIND_ADDRESS=0.0.0.0` for Docker Compose LAN access.
-
-> The viewer shows unredacted tool inputs and results. Enable LAN access only on a trusted network.
-
-## Viewer API
-
-The UI uses the read-only, versioned REST API under `/api/v1`. It queries compact
-tool-call summaries, facets, and metrics, then fetches raw detail only when the
-inspector opens. The server keeps harness files separate and uses a registry of
-harness adapters to project native records into the shared API. The reserved
-`all` scope combines reads, paging, facets, and metrics without merging log files;
-each call retains its harness and native outcome semantics. Activity buckets include
-per-harness counts. Cursors cannot be reused across scopes. Adding a harness
-does not constrain its on-disk event format. See
-[`apps/viewer/openapi.yaml`](apps/viewer/openapi.yaml) for the complete OpenAPI 3.1
-contract.
+See [architecture](docs/architecture.md), [feature parity](docs/native-parity.md), [OpenAPI](packages/protocol/openapi.json) and [design tokens](DESIGN.md).

@@ -42,6 +42,8 @@ export function appendEvent(
   catch (error) {
     metadata.errors.push({ source: 'state', message: error instanceof Error ? error.message : String(error) });
   }
+  const outbox = join(directory, 'outbox');
+  mkdirSync(outbox, { recursive: true, mode: 0o700 });
   const data = Buffer.from(JSON.stringify({
     schema_version: 2,
     event_id: randomUUID(),
@@ -53,7 +55,7 @@ export function appendEvent(
   }) + '\n');
   const flags = constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND
     | constants.O_NOFOLLOW | constants.O_NONBLOCK;
-  const fd = openSync(join(directory, 'codex-tool-calls.jsonl'), flags, 0o600);
+  const fd = openSync(join(outbox, 'codex-tool-calls.jsonl'), flags, 0o600);
   try {
     if (!fstatSync(fd).isFile()) throw new Error('log destination must be a regular file');
     // One O_APPEND write per record: the local POSIX filesystem serializes appends.
