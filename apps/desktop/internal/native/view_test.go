@@ -644,16 +644,31 @@ func TestThemeSystemPreferenceAndVirtualization(t *testing.T) {
 	if len(tt.Texts()) > 500 {
 		t.Fatalf("virtual table built too many rows: %d", len(tt.Texts()))
 	}
-	tt.SetDark(true)
-	if tt.Image().RGBAAt(1000, 700).R > 40 {
-		t.Fatal("system dark preference ignored")
+	assertBackground := func(want ui.Color) {
+		t.Helper()
+		// Sample empty canvas padding. Table pixels can hit text, whose glyph
+		// positions vary with platform fonts and do not establish the theme.
+		got := tt.Image().RGBAAt(0, 0)
+		if got.R != want.R || got.G != want.G || got.B != want.B || got.A != want.A {
+			t.Fatalf("appearance %s: canvas %v, want %v", m.prefs.Theme, got, want)
+		}
 	}
+	dark, light := ui.Hex("#17191d"), ui.Hex("#f5f6f7")
+	tt.SetDark(true)
+	assertBackground(dark)
+	tt.SetDark(false)
+	assertBackground(light)
 	m.prefs.Theme = "Light"
 	tt.Frame()
 	tt.SetDark(true)
-	if tt.Image().RGBAAt(1000, 700).R < 200 {
-		t.Fatal("explicit light preference ignored")
-	}
+	assertBackground(light)
+	m.prefs.Theme = "Dark"
+	tt.Frame()
+	tt.SetDark(false)
+	assertBackground(dark)
+	m.prefs.Theme = "System"
+	tt.Frame()
+	assertBackground(light)
 	if err := tt.Click("echo synthetic 0"); err != nil {
 		t.Fatal(err)
 	}
