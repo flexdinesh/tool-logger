@@ -1,9 +1,0 @@
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": { "@/*": ["./src/client/*"] }
-  },
-  "include": ["src/*.ts", "tests/**/*.ts", "vite.config.ts", "playwright.config.ts"],
-  "exclude": ["src/client/**"]
-}

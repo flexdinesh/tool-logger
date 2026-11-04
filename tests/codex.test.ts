@@ -79,12 +79,12 @@ test('real Codex loads both linked hooks and their commands run under fish when 
   assert.deepEqual(entry.errors, []);
   assert.ok(Array.isArray(entry.hooks));
   const hooks = entry.hooks.map(object).filter((hook) => hook.pluginId === 'codex-tool-logger@tool-logger');
-  assert.deepEqual(hooks.map((hook) => hook.eventName).sort(), ['postToolUse', 'preToolUse']);
+  assert.deepEqual(hooks.map((hook) => hook.eventName).sort(), ['postToolUse', 'preToolUse'], JSON.stringify(result));
   for (const hook of hooks) {
     assert.equal(hook.enabled, true);
     assert.equal(hook.trustStatus, 'untrusted', 'installation must not bypass hook trust');
     assert.equal(typeof hook.command, 'string');
-    const shell = existsSync('/opt/homebrew/bin/fish') ? '/opt/homebrew/bin/fish' : '/bin/sh';
+    const shell = ['/usr/bin/fish', '/opt/homebrew/bin/fish'].find((path) => existsSync(path)) ?? '/bin/sh';
     const stdout = execFileSync(shell, ['-c', String(hook.command)], {
       cwd: root, env, encoding: 'utf8', timeout: 10_000,
       input: JSON.stringify({
@@ -94,6 +94,6 @@ test('real Codex loads both linked hooks and their commands run under fish when 
     });
     assert.equal(stdout, '');
   }
-  const lines = readFileSync(join(env.TOOL_LOGGER_STATE_DIR, 'codex-tool-calls.jsonl'), 'utf8').trim().split('\n');
+  const lines = readFileSync(join(env.TOOL_LOGGER_STATE_DIR, 'outbox/codex-tool-calls.jsonl'), 'utf8').trim().split('\n');
   assert.equal(lines.length, 2);
 });

@@ -180,26 +180,22 @@ export function linkCodexPlugin(root: string, name: string, options: CodexLinkOp
     throw new Error(`Codex ignores symlink cache roots. Move this legacy link aside: ${destination}`);
   }
   const entries = existing?.isDirectory() ? readdirSync(destination) : [];
-  if (entries.includes('.codex-plugin') && entries.length > 1 && entries.every((entry) => {
+  const legacy = entries.includes('.codex-plugin') && entries.length > 1 && entries.every((entry) => {
     const path = join(destination, entry);
     if (entry === '.codex-plugin' && lstatSync(path).isDirectory()) return true;
     return lstatSync(path).isSymbolicLink() && readlinkSync(path) === join(source, entry);
-  })) {
-    const metadata = join(destination, '.codex-plugin');
-    // Migrate earlier links: the loader rejects a symlinked manifest directory.
-    if (lstatSync(metadata).isSymbolicLink()) unlinkSync(metadata);
-    cpSync(join(source, '.codex-plugin'), metadata, { recursive: true });
-    for (const entry of readdirSync(source)) {
-      if (!entries.includes(entry)) symlinkSync(join(source, entry), join(destination, entry));
-    }
-    console.log(`Already linked: ${destination} -> ${source}`);
-    return;
-  }
-  if (existing) throw new Error(`cache already exists: ${destination}. Move it aside before linking.`);
+  });
+  const ownershipPath = join(codexHome, 'plugins/local-sources', `${catalog.name}-${name}-${version}.json`);
+  const ownership = lstatSync(ownershipPath, { throwIfNoEntry: false });
+  const owned = ownership?.isFile() && !ownership.isSymbolicLink()
+    && readJson(ownershipPath).source === source;
+  if (existing && !legacy && !owned) throw new Error(`cache already exists: ${destination}. Move it aside before linking.`);
   // Codex owns registration and config. Never hand-edit config.toml.
   const runCodex = options.runCodex ?? ((args) => { execFileSync('codex', args, { stdio: 'inherit' }); });
-  runCodex(['plugin', 'marketplace', 'add', root]);
-  runCodex(['plugin', 'add', `${name}@${catalog.name}`]);
+  if (!existing) {
+    runCodex(['plugin', 'marketplace', 'add', root]);
+    runCodex(['plugin', 'add', `${name}@${catalog.name}`]);
+  }
   const installed = lstatSync(destination);
   if (installed.isSymbolicLink() || !installed.isDirectory()) {
     throw new Error(`unexpected Codex cache layout: ${destination}`);
@@ -212,21 +208,17 @@ export function linkCodexPlugin(root: string, name: string, options: CodexLinkOp
   const backup = join(backupRoot, `${catalog.name}-${name}-${randomUUID()}`);
   renameSync(destination, backup);
   try {
-    // Codex requires real version and manifest directories. Runtime files stay linked.
-    mkdirSync(destination);
-    for (const entry of readdirSync(source)) {
-      if (entry === '.codex-plugin') {
-        cpSync(join(source, entry), join(destination, entry), { recursive: true });
-      } else {
-        symlinkSync(join(source, entry), join(destination, entry));
-      }
-    }
+    // Codex fingerprints every entry for hook trust and rejects symlinked content.
+    // Install a complete local snapshot, refreshed explicitly by this command.
+    cpSync(source, destination, { recursive: true, dereference: true });
+    mkdirSync(dirname(ownershipPath), { recursive: true });
+    writeJson(ownershipPath, { source });
   } catch (error) {
     rmSync(destination, { recursive: true, force: true });
     renameSync(backup, destination);
     throw error;
   }
-  console.log(`Linked: ${destination} -> ${source}\nOriginal copy: ${backup}`);
+  console.log(`Installed local snapshot: ${destination}\nSource: ${source}\nPrevious copy: ${backup}`);
   console.log("Restart Codex. Review and trust this plugin's hooks in /hooks before use.");
 }
 

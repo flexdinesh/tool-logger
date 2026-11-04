@@ -1,0 +1,13 @@
+{
+  "name": "@tool-logger/desktop",
+  "private": true,
+  "scripts": {
+    "dev": "go tool mygo dev",
+    "start": "go run ./cmd/tool-logger",
+    "build": "go tool mygo build",
+    "check": "go vet ./... && go tool mygo vet && go test -race ./...",
+    "test": "go test ./...",
+    "test:e2e": "TOOL_LOGGER_NATIVE_E2E=1 go test -tags e2e ./internal/native ./cmd/tool-logger -run 'TestNativeProcessHTTPIngestionAndAutomation|TestComposedApp' -count=1 -v",
+    "bench": "go test ./internal/sqlite -run '^$' -bench . -benchmem"
+  }
+}

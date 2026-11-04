@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { open } from 'node:fs/promises';
+import { mkdir, open } from 'node:fs/promises';
 import { join } from 'node:path';
 import { collectMetadata } from './context.ts';
 import type { MetadataError } from './context.ts';
@@ -58,7 +58,9 @@ async function writeRecord(directory: string, pending: PendingEvent): Promise<vo
   }) + '\n');
   const flags = constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND
     | constants.O_NOFOLLOW | constants.O_NONBLOCK;
-  const file = await open(join(directory, 'opencode-tool-calls.jsonl'), flags, 0o600);
+  const outbox = join(directory, 'outbox');
+  await mkdir(outbox, { recursive: true, mode: 0o700 });
+  const file = await open(join(outbox, 'opencode-tool-calls.jsonl'), flags, 0o600);
   try {
     if (!(await file.stat()).isFile()) throw new Error('log destination must be a regular file');
     const result = await file.write(data);

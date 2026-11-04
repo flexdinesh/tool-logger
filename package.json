@@ -8,13 +8,9 @@
     "pnpm": "11.x"
   },
   "scripts": {
-    "check": "node scripts/workspace.ts check && pnpm --filter viewer openapi:check && pnpm typecheck && pnpm test",
-    "typecheck": "tsc --noEmit && pnpm --filter viewer typecheck",
-    "test": "node --test tests/*.test.ts && pnpm --filter viewer test",
-    "viewer:docker:build": "docker compose build viewer",
-    "viewer:docker": "docker compose up --build -d --wait viewer",
-    "viewer:docker:stop": "docker compose down",
-    "viewer:docker:logs": "docker compose logs -f viewer",
+    "check": "node scripts/workspace.ts check && pnpm --filter @tool-logger/transport check && pnpm --filter @tool-logger/protocol check && pnpm typecheck && pnpm test",
+    "typecheck": "tsc --noEmit && pnpm --filter @tool-logger/transport typecheck && pnpm --filter @tool-logger/protocol typecheck",
+    "test": "node --test tests/*.test.ts && pnpm --filter @tool-logger/transport test && pnpm --filter @tool-logger/desktop check",
     "new:codex": "node scripts/workspace.ts new-codex",
     "link:codex": "node scripts/workspace.ts link-codex",
     "link:opencode": "node scripts/workspace.ts link-opencode"

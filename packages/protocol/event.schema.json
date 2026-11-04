@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sourceId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "harness": {
+      "enum": [
+        "codex",
+        "opencode"
+      ]
+    },
+    "recordedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "native": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "event_id",
+        "harness",
+        "logged_at",
+        "hook",
+        "event",
+        "metadata"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 2
+        },
+        "event_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "harness": {
+          "enum": [
+            "codex",
+            "opencode"
+          ]
+        },
+        "logged_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "hook": {
+          "type": "string"
+        },
+        "event": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "sourceId",
+    "harness",
+    "recordedAt",
+    "native"
+  ],
+  "additionalProperties": false
+}

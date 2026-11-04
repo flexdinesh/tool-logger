@@ -1,0 +1,45 @@
+{
+  "valid": [
+    {
+      "schemaVersion": 1,
+      "eventId": "550e8400-e29b-41d4-a716-446655440001",
+      "sourceId": "550e8400-e29b-41d4-a716-446655440000",
+      "harness": "codex",
+      "recordedAt": "2026-11-04T10:00:00.000Z",
+      "native": {
+        "schema_version": 2,
+        "event_id": "550e8400-e29b-41d4-a716-446655440001",
+        "harness": "codex",
+        "logged_at": "2026-11-04T10:00:00.000Z",
+        "hook": "PreToolUse",
+        "event": { "hook_event_name": "PreToolUse", "session_id": "fixture-session", "tool_use_id": "call-1", "tool_name": "exec_command", "tool_input": { "cmd": "pwd" } },
+        "metadata": { "host": { "hostname": "fixture-host" } }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "550e8400-e29b-41d4-a716-446655440002",
+      "sourceId": "550e8400-e29b-41d4-a716-446655440000",
+      "harness": "opencode",
+      "recordedAt": "2026-11-04T10:00:01.000Z",
+      "native": {
+        "schema_version": 2,
+        "event_id": "550e8400-e29b-41d4-a716-446655440002",
+        "harness": "opencode",
+        "logged_at": "2026-11-04T10:00:01.000Z",
+        "hook": "tool.execute.after",
+        "api_version": 2,
+        "event": { "sessionID": "fixture-session", "id": "call-1", "tool": "bash", "status": "error", "error": "synthetic failure" },
+        "metadata": {}
+      }
+    }
+  ],
+  "invalid": [
+    { "name": "unsupported version", "patch": { "schemaVersion": 2 } },
+    { "name": "invalid event UUID", "patch": { "eventId": "not-a-uuid" } },
+    { "name": "invalid source UUID", "patch": { "sourceId": "not-a-source" } },
+    { "name": "unsupported harness", "patch": { "harness": "other" } },
+    { "name": "invalid timestamp", "patch": { "recordedAt": "yesterday" } },
+    { "name": "native must be object", "patch": { "native": [] } }
+  ]
+}

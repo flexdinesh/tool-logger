@@ -151,110 +151,37 @@ components:
     padding: "1rem"
     width: "clamp(24rem, 32vw, 30rem)"
 ---
+
 # Design System: Tool Logger
 
-## Overview
+Graphite is a compact native workspace for agent tool evidence. Charcoal/near-white surfaces, slate text, thin rules and restrained green accents keep calls dominant. The frontmatter retains the semantic palette and role scale; native mappings live in apps/desktop/internal/native/theme.go.
 
-**Creative North Star: "Graphite"**
+## Native implementation
 
-Graphite is a compact, precise workspace for reading local tool evidence. Charcoal and near-white surfaces, slate text, thin rules, and restrained green accents keep dense information calm and readable. Shared React, Tailwind, and shadcn/ui primitives maintain consistent controls and states.
+MyGo draws the interface in Go. No CSS, webview, React or web fonts are involved. Use native system UI fonts and the platform monospace font for payloads/identifiers. The base widget size is 14 DIPs; titles use 20 DIPs, evidence uses 12 DIPs, spacing follows a 4-DIP rhythm, and controls have restrained 6-DIP corners.
 
-Both themes use the same semantic roles. Tone and borders establish depth; short motion explains state changes. Native evidence remains readable text. Page strategy and composition stay in the viewer surface contract.
+Map Background/Surface/SurfaceHover/Text/TextMuted/Border/Accent/AccentText/Success/Warning/Danger/Selection/Focus to their matching frontmatter roles. Accent pressed tones are #b4d668 in dark and #2c4815 in light. Keep selected rows distinct and text readable. Native widgets own interaction/focus mechanics.
 
-**Key Characteristics:**
+## Workspace
 
-- Compact controls
-- Thin neutral rules
-- Paired light and dark palettes
-- Readable native evidence
+A 48-DIP toolbar exposes navigation, pause/resume, activity links and theme. A source sidebar separates harness scope from source scope and keeps setup/connection diagnostics reachable. The center holds compact metrics, optional activity/tool charts, search/filters and a virtualized ruled calls table. A resizable inspector stays beside the table and follows successive selections.
 
-## Colors
+The app starts at 1440 by 900, with minimum 960 by 640. Narrow desktop windows retain the sidebar and useful call columns; evidence panels resize and scroll internally. The footer exposes live/paused state, loaded count and explicit Quit. No phone/mobile viewport is shipped.
 
-Frontmatter is normative. Unprefixed color slugs record dark defaults; light-* slugs record the light counterparts. These are paired palettes, not separate component APIs: :root[data-theme=light] overrides the same --color-* semantic variables.
+Preserve the flat edge-to-edge composition, thin borders and restrained green selection. Avoid decorative gradients, floating dashboard frames, live glows and oversized metric cards.
 
-### Primary
+## Evidence and states
 
-Soft Lime / Deep Green action tokens mark filled actions, selected scope, focus, links, and selected rows. action-hover changes tone; action-soft supplies a quiet selection fill; on-action supplies the filled-action foreground.
+Use selectable, scrollable monospace JSON. Input, Result, Native, Raw events, Metadata and Git remain separate labeled tabs. Copy JSON provides readable feedback. Git snapshots describe first/last recorded lifecycle context, including unknown/missing values.
 
-### Secondary
+Result presence stays neutral. Success/failure colors require an explicit reported outcome. Awaiting, backlog, stale delivery and retry states use clear text with semantic warning/error colors. Harness chart series retain labels; color never establishes outcome.
 
-Slate Trace (data) identifies OpenCode; Green Trace (data-strong) identifies Codex. Series retain text labels; chart color does not express outcome.
+Distinguish waiting for a first call from unmatched filters and connection failures. Show source configuration, write-token lifecycle and delivery health without exposing administration credentials. Source configuration copy is an explicit action and contains its source credential.
 
-### Neutral
+## Preferences, keyboard and accessibility
 
-Charcoal / Near White app-bg is the canvas; bg-surface is content; bg-surface-secondary groups fields, hover rows, and payloads. Slate text-primary, text-secondary, and text-muted establish hierarchy. stroke and stroke-strong draw thin rules. scope-hover supplies quiet harness hover; bg-overlay dims only modal details.
+System theme on first launch; Light/Dark/System selection, pane widths, column layout and filter navigation persist in private preferences. Menus use platform roles/shortcuts. Search, back/forward, row selection, tabs, pane dividers, copy, close and Quit support keyboard operation. Keep visible focus and meaningful widget labels/keys.
 
-Native state-success, state-warning, and state-destructive each pair with a soft fill. Explicit success and readable source health use success; awaiting results, partial source health, paused updates, and test-data notices use warning; failures and unreadable sources use destructive. Received results with unknown outcome remain neutral.
+State updates arrive through Window.Update. Stable call IDs preserve selection through paging/live refresh. Late requests cannot replace newer scopes or selections. Pause freezes activity while preserving detail recovery. Respect native reduced-motion settings and avoid continuous decorative animation.
 
-**The Native Outcomes Rule.** Result presence stays neutral; use success or failure colors only for a reported outcome.
-
-First visit follows OS preference; explicit light/dark selection persists locally under tool-logger-theme. The top-right toggle switches modes. Each theme sets CSS color-scheme. When storage is unavailable, selection lasts for the current visit.
-
-## Typography
-
-**UI Font:** Inter, then the declared system sans stack. Inter is requested, not shipped locally; availability determines rendering.
-**Evidence Font:** SFMono-Regular, Consolas, Liberation Mono, then monospace.
-
-Apply global antialiased font smoothing on WebKit and grayscale smoothing on Firefox/macOS.
-
-- Title: semibold 20px / 30px, tight tracking; workspace and inspector headings.
-- Section: semibold 14px / 21px on desktop; phone calls heading uses 16px / 24px.
-- Body: regular 16px / 24px inherited baseline.
-- Control: medium 14px / 21px; buttons, scope, and payload tabs. Phone search/selects use 16px text.
-- Label: medium 12px / 18px; badges and compact labels. Metadata may use regular weight.
-- Code: medium 12px / 18px tool names; regular mono summaries and identifiers.
-- Payload: regular 12px / 24px native JSON, two-space tab width.
-
-Use tabular numerals for measurements and dates. Truncate list summaries, wrap detail paths, and cap empty-state explanation width at 65ch. No display type role is established.
-
-**The Shared Scale Rule.** Use shared rem type roles and the 4px spacing rhythm; use monospace for evidence.
-
-## Layout
-
-Flat, edge-to-edge content uses thin horizontal rules. The 4px rhythm supplies 4–12px tight groups, 16px panel padding, and 24px desktop gutters. No centered floating dashboard frame or desktop width cap is established.
-
-Observed viewer composition: 44px desktop header, compact heading/metrics, shallow activity trace, inline filters, ruled calls, and source details. At 48rem and below the heading stacks. At 40rem and below, 16px gutters, two-column metrics, single-column expanded filters, and full-width call buttons replace the table. The phone header occupies at least 52px including its 44px controls and vertical padding. Preserve tool, summary, harness, native state, date, and duration when reflowing.
-
-Desktop buttons and fields are 32px high; phone controls are at least 44px high. Phone icon controls and tabs also reach 44px width. Body minimum width is 20rem. Disclosures stay inline; raw payload scrolling stays inside its panel.
-
-Current viewer inspector docks right from 70rem: nonmodal, without scrim or shadow, top 44px, width clamp(24rem, 32vw, 30rem). Workspace reserves that width, permitting successive row selection. Below 70rem it becomes a modal right sheet, maximum 520px from 40rem, full width below 40rem. These surface details remain examples; the surface contract owns composition.
-
-## Elevation & Depth
-
-Tone and 1px borders establish structure. Content and desktop details remain flat. Modal inspector shadows: dark -0.5rem 0 1.5rem #00000026; light -0.5rem 0 1.5rem #20262e14. Modal scrim uses bg-overlay. No decorative blur or live-indicator halo is used.
-
-**The Structural Depth Rule.** Keep content flat; reserve the overlay shadow and scrim for the modal inspector.
-
-Activity transforms transition over 180ms ease-out. Inspector reveal moves horizontally from 1.5rem to rest over 180ms cubic-bezier(0.16,1,0.3,1). Reduced motion sets transitions and animations to 0.01ms. No page entrance choreography.
-
-## Shapes
-
-Restrained corners: 4px badges, 6px controls and payloads, 8px reusable bordered surfaces. Main workspace and rows stay square and ruled. Borders are 1px; selected scope and payload tabs use 2px underlines. Small circular markers accompany readable series and status labels.
-
-## Components
-
-- Buttons: primary uses action/on-action; outline uses surface/secondary text/neutral border; ghost uses action text. Shared 6px corners, 12px horizontal padding, 32px desktop height, 32px square icon controls. Hover changes tone; focus uses a 2px ring and 2px canvas offset. Disabled opacity is 50%.
-- Fields: surface fill, 1px border, 6px corners, 12px padding, 14px text. Focus changes border and adds a 2px ring at 20% opacity; placeholders are muted. Phone fields reach 44px.
-- Scope/navigation: quiet underline selection, 16px gap, muted default text, primary selected text and 2px action rule. Hover uses scope-hover. State uses aria-pressed. Payload tabs share ruled selection with action-colored active text.
-- Status: label plus 6px marker, 4px corners, 8px horizontal/4px vertical padding, 12px medium type. Neutral surface/text/border; native success, warning, destructive use matching soft fill, foreground, and 20% foreground border. Labels are not actions.
-- Containers: reusable card primitive has surface fill, 1px border, 8px corners, no shadow or prescribed padding. Dashboard sections remain edge to edge.
-- Rows: secondary hover, action-soft selection, mono tool/summary, tabular dates/duration. Desktop supports keyboard selection with inset focus outline; phone calls become full-width buttons.
-- Payload: ruled tabs, secondary fill, 6px corners, 1px border, 12px padding, 12px mono/24px leading. Wrap long text and scroll inside a 58vh cap. Copy feedback remains readable.
-- Inspector: 20px heading, close action, native status, ruled metadata, payload near top. Desktop permits successive row selection; modal contains focus. Escape dismisses; focus returns to the call or search fallback. Radix/application code supplies behavior beyond visual snippets.
-- States: quiet loading skeletons, recovery messages, distinct absent-log versus unmatched-filter empty states. Health, tools, sources, context disclose inline.
-
-## Do's and Don'ts
-
-### Do:
-
-- Do reuse semantic variables and shared components in both themes.
-- Do pair chart and state colors with readable labels and visible keyboard focus.
-- Do preserve native outcomes, identifiers, and payload text.
-- Do reflow data for phones and respect reduced motion.
-
-### Don't:
-
-- Don't infer tool success from result presence.
-- Don't add oversized color fields, floating dashboard frames, or decorative effects that compete with calls.
-- Don't hard-code theme colors in shared components.
-- Don't carry unused navigation or live-glow compatibility tokens into new surfaces.
+Window close hides the UI and retains ingestion. Tray/Dock/second-instance activation reopens it. Quit ends the app. Native view tests cover both themes, keyboard/focus, compact layout, payload copy, resizable panes and virtualized rows; e2e builds use MyGo automation against real HTTP ingestion.

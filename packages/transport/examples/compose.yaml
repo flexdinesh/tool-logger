@@ -1,0 +1,15 @@
+services:
+  source:
+    image: node:26-alpine
+    init: true
+    command: [node, /opt/transport/cli.ts, run]
+    restart: unless-stopped
+    user: ${TOOL_LOGGER_SOURCE_UID:-1000}:${TOOL_LOGGER_SOURCE_GID:-1000}
+    read_only: true
+    environment:
+      TOOL_LOGGER_STATE_DIR: /var/lib/tool-logger
+    volumes:
+      - ../src:/opt/transport:ro
+      - ${TOOL_LOGGER_SOURCE_STATE:-${HOME}/.local/state/tool-logger}:/var/lib/tool-logger
+    extra_hosts:
+      - host.docker.internal:host-gateway

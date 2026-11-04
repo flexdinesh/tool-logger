@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import {
-  existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync,
+  cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync,
   symlinkSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -20,7 +20,7 @@ function fixture(t: TestContext) {
   const temp = mkdtempSync(join(tmpdir(), 'opencode logger '));
   t.after(() => rmSync(temp, { recursive: true, force: true }));
   const directory = join(temp, 'state');
-  const log = join(directory, 'opencode-tool-calls.jsonl');
+  const log = join(directory, 'outbox', 'opencode-tool-calls.jsonl');
   return { temp, directory, log };
 }
 
@@ -169,6 +169,8 @@ test('V1 and V2 append mixed history while legacy markers remain untouched', asy
   const active = join(f.directory, 'opencode-v2-active.json');
   writeFileSync(intent, 'legacy intent\n');
   writeFileSync(active, 'legacy active\n');
+  const legacy = join(f.directory, 'opencode-tool-calls.jsonl');
+  writeFileSync(legacy, 'legacy history\n');
   const logger = createEventLogger(f.directory);
   logger.appendV2('tool.execute.before', { id: 'v2' }, async () => ({ cwd: null, errors: [] }));
   logger.appendV1('tool.execute.after', { callID: 'v1-later' }, {}, null);
@@ -176,6 +178,7 @@ test('V1 and V2 append mixed history while legacy markers remain untouched', asy
   assert.deepEqual(records(f.log).map((value) => value.api_version), [2, 1]);
   assert.equal(readFileSync(intent, 'utf8'), 'legacy intent\n');
   assert.equal(readFileSync(active, 'utf8'), 'legacy active\n');
+  assert.equal(readFileSync(legacy, 'utf8'), 'legacy history\n');
 });
 
 test('event queue preserves order when earlier background work is slower', async (t) => {
@@ -231,12 +234,32 @@ test('hooks are silent and fail open on serialization and filesystem failures', 
   mkdirSync(f.directory, { recursive: true, mode: 0o700 });
   const target = join(f.temp, 'keep');
   writeFileSync(target, 'keep');
+  mkdirSync(join(f.directory, 'outbox'), { recursive: true, mode: 0o700 });
   symlinkSync(target, f.log);
   const logger = createEventLogger(f.directory);
   logger.appendV1('tool.execute.after', {}, {}, f.temp);
   await assert.doesNotReject(logger.drain());
   assert.equal(readFileSync(target, 'utf8'), 'keep');
   assert.ok((statSync(f.directory).mode & 0o777) === 0o700);
+});
+
+test('installed OpenCode logging stays silent and fails open in separate processes', (t) => {
+  const f = fixture(t);
+  const copy = join(f.temp, 'installed');
+  cpSync(join(process.cwd(), 'plugins/opencode-tool-logger'), copy, { recursive: true });
+  const module = pathToFileURL(join(copy, 'log.ts')).href;
+  const source = `import {createEventLogger} from ${JSON.stringify(module)}; globalThis.fetch=()=>{throw new Error('HTTP on hook path')}; const logger=createEventLogger(); logger.appendV2('tool.execute.after',{id:'standalone'},async()=>({cwd:null,errors:[]})); await logger.drain();`;
+  const output = execFileSync(process.execPath, ['--input-type=module', '--eval', source], {
+    cwd: f.temp, env: { ...process.env, TOOL_LOGGER_STATE_DIR: f.directory }, encoding: 'utf8', timeout: 3000,
+  });
+  assert.equal(output, '');
+  assert.equal(records(f.log).length, 1);
+  const blocked = join(f.temp, 'blocked');
+  writeFileSync(blocked, 'not a directory');
+  const failed = execFileSync(process.execPath, ['--input-type=module', '--eval', source], {
+    cwd: f.temp, env: { ...process.env, TOOL_LOGGER_STATE_DIR: blocked }, encoding: 'utf8', timeout: 3000,
+  });
+  assert.equal(failed, '');
 });
 
 test('metadata bounds Git requests and retains root when status fails', async (t) => {

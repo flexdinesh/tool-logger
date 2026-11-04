@@ -1,0 +1,41 @@
+name: Check
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/desktop/go.mod
+          cache-dependency-path: apps/desktop/go.sum
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+      - name: Linux native display dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libayatana-appindicator3-dev xvfb
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: Linux native process automation
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm --filter @tool-logger/desktop test:e2e
+      - name: macOS native process automation
+        if: runner.os == 'macOS'
+        run: pnpm --filter @tool-logger/desktop test:e2e
+      - run: pnpm --filter @tool-logger/desktop build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tool-logger-${{ runner.os }}
+          path: apps/desktop/build/
