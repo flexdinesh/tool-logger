@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -54,14 +55,35 @@ func testContext(t *testing.T) context.Context {
 }
 func eventually(t *testing.T, check func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(8 * time.Second)
+	if !waitFor(8*time.Second, check) {
+		t.Fatal("condition did not become true")
+	}
+}
+func collectorEvidence(state string) string {
+	directory := filepath.Join(state, "collector")
+	var evidence strings.Builder
+	for _, name := range []string{"server.lock", "worker.lock"} {
+		lock, err := lockFile(filepath.Join(directory, name))
+		if err == nil {
+			unlockFile(lock)
+		}
+		fmt.Fprintf(&evidence, "%s lock attempt: %v\n", name, err)
+	}
+	for _, name := range []string{"server.log", "worker.log"} {
+		content, err := os.ReadFile(filepath.Join(directory, name))
+		fmt.Fprintf(&evidence, "%s (%v):\n%s\n", name, err, content)
+	}
+	return evidence.String()
+}
+func waitFor(wait time.Duration, check func() bool) bool {
+	deadline := time.Now().Add(wait)
 	for time.Now().Before(deadline) {
 		if check() {
-			return
+			return true
 		}
 		time.Sleep(25 * time.Millisecond)
 	}
-	t.Fatal("condition did not become true")
+	return false
 }
 
 func TestCollectorProcessConcurrentStartupDurableDeliveryAndShutdown(t *testing.T) {
@@ -322,6 +344,32 @@ func TestProvisioningRefusesIdentityReassignment(t *testing.T) {
 	}
 }
 
+func TestEnsureLaunchesAfterExitingCollectorReleasesLock(t *testing.T) {
+	state := testState(t)
+	ctx := testContext(t)
+	t.Cleanup(func() {
+		stopCtx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancel()
+		_ = Stop(stopCtx, state)
+	})
+	if err := os.MkdirAll(filepath.Join(state, "collector"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	lock, err := lockFile(filepath.Join(state, "collector", "server.lock"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	release := time.AfterFunc(300*time.Millisecond, func() { unlockFile(lock) })
+	defer release.Stop()
+	if err := Ensure(ctx, state); err != nil {
+		t.Fatalf("Ensure after lock release: %v\n%s", err, collectorEvidence(state))
+	}
+	status, err := Status(ctx, state)
+	if err != nil || !status.Ready || status.PID == os.Getpid() {
+		t.Fatalf("collector %+v: %v", status, err)
+	}
+}
+
 func TestCollectorCrashReleasesWorkerAndRetainsRemoteIdentity(t *testing.T) {
 	state := testState(t)
 	ctx := testContext(t)
@@ -411,12 +459,19 @@ func TestCollectorCrashReleasesWorkerAndRetainsRemoteIdentity(t *testing.T) {
 	}
 	eventually(t, func() bool { _, e := Status(ctx, state); return e != nil })
 	if err := Ensure(ctx, state); err != nil {
-		t.Fatal(err)
+		t.Fatalf("restart after crash: %v\n%s", err, collectorEvidence(state))
 	}
-	eventually(t, func() bool {
-		s, e := Status(ctx, state)
-		return e == nil && s.PID != before.PID && s.WorkerPID > 0 && s.WorkerPID != before.WorkerPID
-	})
+	// The replacement retries worker.lock at about 0.5s, 1.5s, 3.5s, 7.5s and 15.5s
+	// while the orphaned worker exits. Wait past the last retry; dump evidence if it fails.
+	var last domain.ServerStatus
+	var lastErr error
+	if !waitFor(20*time.Second, func() bool {
+		last, lastErr = Status(ctx, state)
+		return lastErr == nil && last.PID != before.PID && last.WorkerPID > 0 && last.WorkerPID != before.WorkerPID
+	}) {
+		t.Fatalf("worker not replaced: before=%+v last=%+v err=%v oldWorkerSignal0=%v\n%s",
+			before, last, lastErr, syscall.Kill(before.WorkerPID, 0), collectorEvidence(state))
+	}
 	page, err := remote.Calls(ctx, nil)
 	if err != nil || len(page.Data) != 1 {
 		t.Fatalf("TLS identity, credential or data lost on crash: %+v %v", page, err)

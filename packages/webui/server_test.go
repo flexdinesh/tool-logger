@@ -42,7 +42,12 @@ func start(t *testing.T) *fixture {
 	t.Setenv("MYGO_DEV_URL", "")
 	// Exercise the collector's public composition API, never its internal HTTP or
 	// SQLite packages. This remains a real Unix HTTP/SQLite boundary test.
-	state := t.TempDir()
+	// t.TempDir embeds the test name, which exceeds the 104-byte macOS socket path limit.
+	state, err := os.MkdirTemp("", "tl-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(state) })
 	if err := os.MkdirAll(filepath.Join(state, "collector"), 0700); err != nil {
 		t.Fatal(err)
 	}
