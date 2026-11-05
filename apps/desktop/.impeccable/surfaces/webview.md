@@ -6,4 +6,4 @@ Primary target: frontend/src/client/app.tsx. Related: state/, components/, prefe
 
 Signature interaction: select successive calls while evidence remains beside the table. Source and harness scopes are independent. Pause freezes collection/metrics; detail retry remains available. URLs/deep links and back/forward restore scope. Closing a MyGo window retains ingestion until explicit Quit; browser logout leaves the server running.
 
-Verification: headless browser tests against real Go HTTP/SQLite plus shell event/preference and composed headless process checks. Display-dependent MyGo lifecycle remains a separate e2e/CI check; never infer it from browser test success.
+Verification: headless browser tests against real Go HTTP/SQLite plus shell event/preference and composed headless process checks. Display-dependent MyGo lifecycle remains a separate e2e check; never infer it from browser test success.

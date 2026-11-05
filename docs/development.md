@@ -2,7 +2,8 @@
 
 ## Install from main
 
-Every green main build publishes prebuilt edge assets. No checkout or build:
+Every push to main publishes prebuilt edge assets once all platforms build. CI
+runs no tests. No checkout or build:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/flexdinesh/tool-logger/main/scripts/install-desktop-edge.sh | sh
@@ -49,6 +50,14 @@ Release installs share the same installer implementation and carry the entire wo
 
 ## Verify
 
+CI runs no tests. Run this before creating or updating a PR:
+
+```sh
+pnpm check:pr
+```
+
+It runs, in order:
+
 ```sh
 pnpm check
 pnpm --filter @tool-logger/web test:browser
@@ -56,7 +65,10 @@ pnpm --filter @tool-logger/desktop test:e2e
 pnpm --filter @tool-logger/desktop build
 ```
 
+A Linux pass does not verify macOS. Run it on macOS too before merging or tagging.
+
 Install Chromium with `pnpm --filter @tool-logger/web exec playwright install chromium`.
-Linux native automation uses `xvfb-run -a` and requires the platform webview.
+Linux native automation requires the platform webview. Without a display it uses
+`xvfb-run -a`; if that is missing, `check:pr` fails rather than pass skipped tests.
 Checks use synthetic state and real HTTP/SQLite. Cross-compilation does not verify
 another platform's runtime. See [parity](native-parity.md) and [releases](release.md).

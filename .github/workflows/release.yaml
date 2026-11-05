@@ -37,14 +37,9 @@ jobs:
             echo "commit=$commit"
             echo "published=$published"
           } >> "$GITHUB_OUTPUT"
-  check:
+  build:
     needs: tag
     if: needs.tag.outputs.published != 'true'
-    uses: ./.github/workflows/check.yaml
-    with:
-      ref: ${{ needs.tag.outputs.commit }}
-  build:
-    needs: [tag, check]
     uses: ./.github/workflows/build.yaml
     with:
       ref: ${{ needs.tag.outputs.commit }}

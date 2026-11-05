@@ -7,15 +7,16 @@ notarization; macOS builds use MyGo's ad hoc signature.
 
 ## Stable
 
-Tag a tested main commit `vX.Y.Z` and push that tag. `release.yaml` validates the
-tag and main ancestry, runs `check.yaml`, calls `build.yaml`, verifies all assets
-and creates the release. Both validation and publishing skip an existing release.
+Run `pnpm check:pr` on Linux and macOS, because CI runs no tests. Then tag that main
+commit `vX.Y.Z` and push the tag. `release.yaml` validates the tag and main ancestry,
+calls `build.yaml`, verifies all assets and creates the release. Both building and
+publishing skip an existing release.
 Published stable assets are immutable by workflow policy; publish a new patch to
 correct them. The workflow uses its scoped GitHub token, no publication secrets.
 
 ## Edge
 
-A successful Check run for a push to main triggers `edge.yaml`. Its version is
+A push to main triggers `edge.yaml`, with no test gate. Its version is
 `0.0.0-edge.<12-character commit>`. The same build workflow makes all targets.
 Publishing is serialized and never cancelled midway; an ancestor of the current
 edge tag cannot overwrite it. Divergent history fails publication. Archive names
