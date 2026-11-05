@@ -82,7 +82,7 @@ func (d *automationDriver) assertVisible(t *testing.T, want bool) {
 	}
 }
 
-// Real MyGo process checks are available to Linux/macOS desktop CI. All page
+// Real MyGo process checks run locally through pnpm check:pr. All page
 // interactions use eval and DOM semantics; native widget trees no longer exist.
 func TestDesktopQuitLeavesCollectorRunning(t *testing.T) {
 	if os.Getenv("TOOL_LOGGER_NATIVE_E2E") != "1" {

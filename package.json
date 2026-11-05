@@ -9,6 +9,7 @@
   },
   "scripts": {
     "check": "node scripts/workspace.ts check && node scripts/installers.ts --check && pnpm --filter @tool-logger/transport check && pnpm --filter @tool-logger/protocol check && pnpm typecheck && pnpm test",
+    "check:pr": "node scripts/check-pr.ts",
     "typecheck": "tsc --noEmit && pnpm --filter @tool-logger/transport typecheck && pnpm --filter @tool-logger/protocol typecheck",
     "test": "node --test tests/*.test.ts && pnpm --filter @tool-logger/transport test && pnpm --filter @tool-logger/web check && pnpm --filter @tool-logger/desktop check",
     "build": "pnpm --filter @tool-logger/web build && go build -o build/tool-logger ./apps/cli && pnpm --filter @tool-logger/desktop build",

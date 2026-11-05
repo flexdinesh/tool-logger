@@ -166,11 +166,28 @@ func TestCollectorProcessConcurrentStartupDurableDeliveryAndShutdown(t *testing.
 		page, e := client.Calls(ctx, nil)
 		return e == nil && len(page.Data) == 1 && page.Data[0].Lifecycle == "finished"
 	})
-	eventually(t, func() bool { _, e := os.Stat(filepath.Join(state, "outbox", "checkpoint.json")); return e == nil })
-	checkpoint, err := os.ReadFile(filepath.Join(state, "outbox", "checkpoint.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Calls are visible before the worker persists the ACK. Compare only a settled checkpoint.
+	var checkpoint []byte
+	eventually(t, func() bool {
+		journal, e := os.Stat(filepath.Join(state, "outbox", "codex-tool-calls.jsonl"))
+		if e != nil {
+			return false
+		}
+		content, e := os.ReadFile(filepath.Join(state, "outbox", "checkpoint.json"))
+		if e != nil {
+			return false
+		}
+		var progress struct {
+			Journals map[string]struct {
+				Offset int64 `json:"offset"`
+			} `json:"journals"`
+		}
+		if json.Unmarshal(content, &progress) != nil {
+			return false
+		}
+		checkpoint = content
+		return progress.Journals["codex"].Offset == journal.Size()
+	})
 	client.Close() // Window/client exit must not end collection.
 	if status, err := Status(ctx, state); err != nil || status.PID != initial.PID {
 		t.Fatalf("client exit stopped collector: %v", err)

@@ -70,7 +70,6 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: node scripts/release.ts plugins "$VERSION" release-dist
-      - run: node --test tests/distribution.test.ts tests/workspace.test.ts tests/opencode-workspace.test.ts
       - uses: actions/upload-artifact@v4
         with:
           name: assets-plugins
