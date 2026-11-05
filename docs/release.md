@@ -1,7 +1,7 @@
 # Releases
 
 Installed use needs no checkout, npm, pnpm or Go. Publish GitHub release assets
-for Linux/macOS, amd64/arm64. Plugin execution requires Node.js 26 and the selected
+for Linux/macOS, amd64/arm64; edge omits macOS Intel. Plugin execution requires Node.js 26 and the selected
 harness CLI. Desktop packages currently have no Developer ID signing or
 notarization; macOS builds use MyGo's ad hoc signature.
 
@@ -17,7 +17,7 @@ correct them. The workflow uses its scoped GitHub token, no publication secrets.
 ## Edge
 
 A push to main triggers `edge.yaml`, with no test gate. Its version is
-`0.0.0-edge.<12-character commit>`. The same build workflow makes all targets.
+`0.0.0-edge.<12-character commit>`. The same build workflow makes all targets except macOS Intel.
 Publishing is serialized and never cancelled midway; an ancestor of the current
 edge tag cannot overwrite it. Divergent history fails publication. Archive names
 include the revision; `release.json` is uploaded last. Old archives are removed
@@ -25,7 +25,8 @@ only after the new revision is available. Edge stays a prerelease and never late
 
 ## Assets and build commands
 
-Every release contains exactly nine archives, `checksums.txt` and `release.json`:
+Stable releases contain exactly nine archives and edge seven (no `darwin_amd64`),
+plus `checksums.txt` and `release.json`:
 
 - `tool-logger_<version>_<linux|darwin>_<amd64|arm64>.tar.gz`
 - `tool-logger-desktop_<version>_linux_<amd64|arm64>.tar.gz`
@@ -62,7 +63,8 @@ automation remains in Check. Binaries carry version, commit and commit date.
 `install.sh` installs CLI; `install-desktop.sh` adds MyGo; `install-plugins.sh`
 installs CLI and selected plugins (`codex`, `opencode`, default `all`). Each has an
 `-edge.sh` equivalent. CLI/desktop installers also accept an optional harness
-selection. `TOOL_LOGGER_VERSION=0.1.0` pins a stable installer.
+selection. `TOOL_LOGGER_VERSION=0.1.0` pins a stable installer. Edge installers
+refuse Intel Macs before downloading.
 Linux installs a desktop entry; macOS links the persistent app in ~/Applications.
 
 Downloads verify SHA-256 before installation. `release.json` pins the checksum

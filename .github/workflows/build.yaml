@@ -8,6 +8,10 @@ on:
       version:
         required: true
         type: string
+      targets:
+        description: JSON matrix of runner, os and arch, matching releaseTargets in scripts/release.ts
+        required: true
+        type: string
 permissions:
   contents: read
 jobs:
@@ -15,11 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { runner: ubuntu-latest, os: linux, arch: amd64 }
-          - { runner: ubuntu-24.04-arm, os: linux, arch: arm64 }
-          - { runner: macos-15-intel, os: darwin, arch: amd64 }
-          - { runner: macos-latest, os: darwin, arch: arm64 }
+        include: ${{ fromJSON(inputs.targets) }}
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -91,7 +91,7 @@ jobs:
           pattern: assets-*
           path: release-dist
           merge-multiple: true
-      - name: Require all nine assets and write revision checksums
+      - name: Require the complete asset set and write revision checksums
         env:
           VERSION: ${{ inputs.version }}
         run: node scripts/release.ts checksums "$VERSION" release-dist

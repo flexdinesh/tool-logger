@@ -18,8 +18,14 @@ export function validateVersion(version: string): void {
   }
 }
 
-function target(os: string, arch: string): void {
-  if (!TARGETS.includes(`${os}/${arch}`)) throw new Error(`unsupported target: ${os}/${arch}`);
+// Edge omits macOS Intel. Each caller of build.yaml passes the matching matrix.
+export function releaseTargets(version: string): string[] {
+  validateVersion(version);
+  return version.includes('-edge') ? TARGETS.filter((value) => value !== 'darwin/amd64') : TARGETS;
+}
+
+function target(version: string, os: string, arch: string): void {
+  if (!releaseTargets(version).includes(`${os}/${arch}`)) throw new Error(`unsupported target for ${version}: ${os}/${arch}`);
 }
 
 function run(command: string, args: string[], cwd = ROOT, environment = process.env): void {
@@ -73,7 +79,7 @@ export function bundlePlugins(version: string, output: string, root = ROOT): str
 }
 
 export function buildCLI(version: string, os: string, arch: string, output: string): string {
-  validateVersion(version); target(os, arch);
+  target(version, os, arch);
   const out = resolve(output);
   const name = `tool-logger_${version}_${os}_${arch}`;
   stage(out, (directory) => {
@@ -93,7 +99,7 @@ export function buildCLI(version: string, os: string, arch: string, output: stri
 }
 
 export function buildDesktop(version: string, os: string, arch: string, output: string): string {
-  validateVersion(version); target(os, arch);
+  target(version, os, arch);
   if (os === 'darwin' && process.platform !== 'darwin') throw new Error('macOS packaging requires macOS signing tools');
   const out = resolve(output);
   const name = `tool-logger-desktop_${version}_${os}_${arch}`;
@@ -152,10 +158,9 @@ export function buildDesktop(version: string, os: string, arch: string, output: 
 }
 
 export function expectedAssets(version: string): string[] {
-  validateVersion(version);
   return [
     `tool-logger-plugins_${version}.tar.gz`,
-    ...TARGETS.flatMap((value) => {
+    ...releaseTargets(version).flatMap((value) => {
       const [os, arch] = value.split('/');
       return [`tool-logger_${version}_${os}_${arch}.tar.gz`,
         `tool-logger-desktop_${version}_${os}_${arch}.${os === 'linux' ? 'tar.gz' : 'zip'}`];
