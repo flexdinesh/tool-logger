@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -27,6 +29,24 @@ func StateDirectory(override string) (string, error) {
 		return filepath.Join(home, override[2:]), nil
 	}
 	return filepath.Abs(override)
+}
+
+// ListenUI accepts literal loopback addresses only, including an ephemeral port.
+// Resolve no hostnames: the HTTP origin must describe exactly this listener.
+func ListenUI(address string) (net.Listener, error) {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, fmt.Errorf("invalid UI listener: %w", err)
+	}
+	ip, err := netip.ParseAddr(host)
+	if err != nil || !ip.IsLoopback() || ip.Zone() != "" {
+		return nil, errors.New("UI listener requires a literal loopback IP")
+	}
+	number, err := strconv.ParseUint(port, 10, 16)
+	if err != nil {
+		return nil, errors.New("UI listener requires a numeric port from 0 to 65535")
+	}
+	return net.Listen("tcp", net.JoinHostPort(ip.String(), strconv.FormatUint(number, 10)))
 }
 
 // Credentials live outside source.json: an ingestion source never needs admin access.
