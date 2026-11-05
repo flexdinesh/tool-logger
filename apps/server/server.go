@@ -214,38 +214,23 @@ func Ensure(ctx context.Context, state string) error {
 	if statusErr == nil && status.Ready {
 		return nil
 	}
-	// A live collector may still be opening SQLite. Never launch a second writer.
-	probeLock, err := lockFile(filepath.Join(state, "collector", "server.lock"))
-	var processDone <-chan error
-	if err == nil {
-		unlockFile(probeLock)
-		executable, err := os.Executable()
-		if err != nil {
-			return err
-		}
-		log, err := openPrivateLog(filepath.Join(state, "collector", "server.log"))
-		if err != nil {
-			return err
-		}
-		command := exec.Command(executable, "server", "run")
-		command.Env = replaceEnv(os.Environ(), "TOOL_LOGGER_STATE_DIR", state)
-		command.Stdout = log
-		command.Stderr = log
-		command.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
-		err = command.Start()
-		_ = log.Close()
-		if err != nil {
-			return err
-		}
-		done := make(chan error, 1)
-		processDone = done
-		go func() { done <- command.Wait() }()
-	} else if !errors.Is(err, unix.EWOULDBLOCK) && !errors.Is(err, unix.EAGAIN) {
-		return err
-	}
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
+	var processDone <-chan error
 	for {
+		// A live collector may still be opening SQLite. Never launch a second writer.
+		// A killed collector holds server.lock until its exit completes, so recheck.
+		if processDone == nil {
+			probeLock, err := lockFile(filepath.Join(state, "collector", "server.lock"))
+			if err == nil {
+				unlockFile(probeLock)
+				if processDone, err = launchCollector(state); err != nil {
+					return err
+				}
+			} else if !errors.Is(err, unix.EWOULDBLOCK) && !errors.Is(err, unix.EAGAIN) {
+				return err
+			}
+		}
 		probe, cancel := context.WithTimeout(readyCtx, 300*time.Millisecond)
 		status, err := Status(probe, state)
 		cancel()
@@ -261,6 +246,30 @@ func Ensure(ctx context.Context, state string) error {
 			return fmt.Errorf("collector did not become ready; inspect collector/server.log: %w", err)
 		}
 	}
+}
+
+func launchCollector(state string) (<-chan error, error) {
+	executable, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	log, err := openPrivateLog(filepath.Join(state, "collector", "server.log"))
+	if err != nil {
+		return nil, err
+	}
+	command := exec.Command(executable, "server", "run")
+	command.Env = replaceEnv(os.Environ(), "TOOL_LOGGER_STATE_DIR", state)
+	command.Stdout = log
+	command.Stderr = log
+	command.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	err = command.Start()
+	_ = log.Close()
+	if err != nil {
+		return nil, err
+	}
+	done := make(chan error, 1)
+	go func() { done <- command.Wait() }()
+	return done, nil
 }
 
 func Stop(ctx context.Context, state string) error {

@@ -34,6 +34,17 @@ func writeExecutable(t *testing.T, path string) {
 	}
 }
 
+// resolvedTempDir matches resolveCompanionCLI output where the temp root is a
+// symlink, such as macOS /var -> /private/var.
+func resolvedTempDir(t *testing.T) string {
+	t.Helper()
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
 func TestCompanionResolutionCoversInstalledLocalBuildAndDevelopmentLayouts(t *testing.T) {
 	for _, tc := range []struct{ name, gui, cli, override string }{
 		{"installed sibling", "tool-logger-desktop", "tool-logger", ""},
@@ -42,7 +53,7 @@ func TestCompanionResolutionCoversInstalledLocalBuildAndDevelopmentLayouts(t *te
 		{"development override", ".mygo/dev/tool-logger-desktop", ".mygo/tool-logger", ".mygo/tool-logger"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			root := t.TempDir()
+			root := resolvedTempDir(t)
 			gui, cli := filepath.Join(root, tc.gui), filepath.Join(root, tc.cli)
 			writeExecutable(t, gui)
 			writeExecutable(t, cli)
@@ -59,7 +70,7 @@ func TestCompanionResolutionCoversInstalledLocalBuildAndDevelopmentLayouts(t *te
 }
 
 func TestCompanionResolutionUsesRealBundleAndRejectsBrokenExplicitOverrides(t *testing.T) {
-	root := t.TempDir()
+	root := resolvedTempDir(t)
 	gui := filepath.Join(root, "bundle", "tool-logger-desktop")
 	companion := filepath.Join(root, "bundle", "bin", "tool-logger")
 	writeExecutable(t, gui)
