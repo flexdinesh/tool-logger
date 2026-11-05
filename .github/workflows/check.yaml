@@ -23,11 +23,14 @@ jobs:
         with:
           node-version: 26
           cache: pnpm
-      - name: Linux native display dependencies
+      - name: Linux webview display dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libayatana-appindicator3-dev xvfb
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-0 libayatana-appindicator3-dev xvfb
       - run: pnpm install --frozen-lockfile
+      - name: Headless browser dependencies
+        run: pnpm --filter @tool-logger/desktop exec playwright install --with-deps chromium
       - run: pnpm check
+      - run: pnpm --filter @tool-logger/desktop test:browser
       - name: Linux native process automation
         if: runner.os == 'Linux'
         run: xvfb-run -a pnpm --filter @tool-logger/desktop test:e2e

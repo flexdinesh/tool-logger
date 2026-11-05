@@ -7,3 +7,4 @@ apps/*/playwright-report/
 apps/desktop/build/
 apps/desktop/.mygo/
 apps/desktop/tool-logger
+apps/desktop/internal/webui/dist/

@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "main": "./cmd/tool-logger",
   "out": "build",
+  "bindings": ".mygo/bindings.ts",
+  "buildCommand": "pnpm build:web",
+  "devCommand": "pnpm dev:web",
+  "devUrl": "http://127.0.0.1:5173",
   "urlSchemes": ["tool-logger"],
-  "linux": { "categories": ["Development"], "webview": false }
+  "linux": { "categories": ["Development"], "webview": true }
 }

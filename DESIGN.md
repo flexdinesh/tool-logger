@@ -154,19 +154,19 @@ components:
 
 # Design System: Tool Logger
 
-Graphite is a compact native workspace for agent tool evidence. Charcoal/near-white surfaces, slate text, thin rules and restrained green accents keep calls dominant. The frontmatter retains the semantic palette and role scale; native mappings live in apps/desktop/internal/native/theme.go.
+Graphite is a compact workspace for agent tool evidence in a MyGo webview and ordinary browsers. Charcoal/near-white surfaces, slate text, thin rules and restrained green accents keep calls dominant. The frontmatter retains the semantic palette and role scale; CSS maps those roles in apps/desktop/frontend/src/client/styles.css.
 
-## Native implementation
+## Web implementation
 
-MyGo draws the interface in Go. No CSS, webview, React or web fonts are involved. Use native system UI fonts and the platform monospace font for payloads/identifiers. The base widget size is 14 DIPs; titles use 20 DIPs, evidence uses 12 DIPs, spacing follows a 4-DIP rhythm, and controls have restrained 6-DIP corners.
+React owns the interface. Shared Tailwind/Radix primitives provide consistent controls and accessible interaction; MyGo owns only the surrounding desktop lifecycle. Use the declared system UI font stack and platform monospace font for payloads/identifiers, without network font dependencies. Controls use 14px, titles 20px and evidence 12px; spacing follows a 4px rhythm with restrained 6px control corners. Use rem units for the shared type scale.
 
-Map Background/Surface/SurfaceHover/Text/TextMuted/Border/Accent/AccentText/Success/Warning/Danger/Selection/Focus to their matching frontmatter roles. Accent pressed tones are #b4d668 in dark and #2c4815 in light. Keep selected rows distinct and text readable. Native widgets own interaction/focus mechanics.
+Map CSS semantic variables to matching frontmatter roles. Both themes use the same variable names. Keep selected rows distinct, text readable and focus visible. Form controls and scrollbars follow the selected CSS color-scheme; System follows the platform preference.
 
 ## Workspace
 
-A 48-DIP toolbar exposes navigation, pause/resume, activity links and theme. A source sidebar separates harness scope from source scope and keeps setup/connection diagnostics reachable. The center holds compact metrics, optional activity/tool charts, search/filters and a virtualized ruled calls table. A resizable inspector stays beside the table and follows successive selections.
+A compact toolbar exposes navigation, pause/resume, activity links and theme. A source sidebar separates harness scope from source scope and keeps setup/connection diagnostics reachable. The center holds compact metrics, optional activity/tool charts, search/filters and a virtualized ruled calls table. A resizable inspector stays beside the table and follows successive selections.
 
-The app starts at 1440 by 900, with minimum 960 by 640. Narrow desktop windows retain the sidebar and useful call columns; evidence panels resize and scroll internally. The footer exposes live/paused state, loaded count and explicit Quit. No phone/mobile viewport is shipped.
+The MyGo app starts at 1440 by 900, with minimum 960 by 640. Narrow desktop windows retain useful call columns; evidence panels resize and scroll internally. Browser layouts reflow for phones: controls reach 44px, call buttons replace wide tables, and the inspector becomes a focus-contained modal sheet. Keep full payload scrolling inside the inspector. MyGo exposes explicit Quit; browsers expose Logout. Either client distinguishes live/paused state and loaded count.
 
 Preserve the flat edge-to-edge composition, thin borders and restrained green selection. Avoid decorative gradients, floating dashboard frames, live glows and oversized metric cards.
 
@@ -180,8 +180,8 @@ Distinguish waiting for a first call from unmatched filters and connection failu
 
 ## Preferences, keyboard and accessibility
 
-System theme on first launch; Light/Dark/System selection, pane widths, column layout and filter navigation persist in private preferences. Menus use platform roles/shortcuts. Search, back/forward, row selection, tabs, pane dividers, copy, close and Quit support keyboard operation. Keep visible focus and meaningful widget labels/keys.
+System theme on first launch; Light/Dark/System selection, pane widths, column layout and filter navigation persist per client. MyGo keeps private preferences in Go and seeds compatible native settings once without changing the original file. Browsers use local preference storage. Menus use platform roles/shortcuts. Search, back/forward, row selection, tabs, pane dividers, copy, close, logout and Quit support keyboard operation. Keep visible focus and meaningful accessible labels. Modal sheets contain focus and restore it when dismissed.
 
-State updates arrive through Window.Update. Stable call IDs preserve selection through paging/live refresh. Late requests cannot replace newer scopes or selections. Pause freezes activity while preserving detail recovery. Respect native reduced-motion settings and avoid continuous decorative animation.
+React owns view state. Stable call IDs preserve selection through paging/live refresh. Abort requests and check generations so late responses cannot replace newer scopes or selections. Pause freezes activity while preserving detail recovery. Respect prefers-reduced-motion and avoid continuous decorative animation. Keep browser admin credentials out of preference storage; login clears the token field and uses an HttpOnly session cookie.
 
-Window close hides the UI and retains ingestion. Tray/Dock/second-instance activation reopens it. Quit ends the app. Native view tests cover both themes, keyboard/focus, compact layout, payload copy, resizable panes and virtualized rows; e2e builds use MyGo automation against real HTTP ingestion.
+Window close hides the UI and retains ingestion. Tray/Dock/second-instance activation reopens it. Quit ends the app. Browser logout or tab close leaves ingestion running. Browser tests cover both themes, keyboard/focus, responsive layouts, payload copy, resizable panes and virtualized rows; e2e builds use MyGo page/menu automation against real HTTP ingestion. Displayless tests do not establish native rendering or lifecycle correctness.

@@ -1,13 +1,39 @@
 {
   "name": "@tool-logger/desktop",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "go tool mygo dev",
-    "start": "go run ./cmd/tool-logger",
-    "build": "go tool mygo build",
-    "check": "go vet ./... && go tool mygo vet && go test -race ./...",
-    "test": "go test ./...",
-    "test:e2e": "TOOL_LOGGER_NATIVE_E2E=1 go test -tags e2e ./internal/native ./cmd/tool-logger -run 'TestNativeProcessHTTPIngestionAndAutomation|TestComposedApp' -count=1 -v",
+    "build:web": "vite build --config frontend/vite.config.ts",
+    "dev:web": "vite --config frontend/vite.config.ts",
+    "dev": "pnpm build:web && go tool mygo dev",
+    "start": "pnpm build:web && go run ./cmd/tool-logger",
+    "build": "pnpm build:web && go tool mygo build",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "test:web": "node --test tests/*.test.ts",
+    "test:browser": "pnpm build:web && playwright test",
+    "check": "pnpm typecheck && pnpm test:web && pnpm build:web && go vet ./... && go tool mygo vet && go test -race ./...",
+    "test": "pnpm build:web && go test ./...",
+    "test:e2e": "pnpm build:web && TOOL_LOGGER_NATIVE_E2E=1 go test -tags e2e ./internal/desktop ./cmd/tool-logger -run TestComposedApp -count=1 -v",
     "bench": "go test ./internal/sqlite -run '^$' -bench . -benchmem"
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "1.1.23",
+    "@radix-ui/react-tabs": "1.1.21",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "0.544.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwind-merge": "3.6.0",
+    "mygo-runtime": "0.7.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@vitejs/plugin-react": "6.1.1",
+    "tailwindcss": "4.3.3",
+    "vite": "8.2.2"
   }
 }

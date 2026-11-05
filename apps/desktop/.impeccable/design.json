@@ -718,7 +718,7 @@
       }
     }
   },
-  "implementation": "internal/native/theme.go",
+  "implementation": "frontend/src/client/styles.css",
   "mode": "Operate",
   "layout": {
     "initial": [
