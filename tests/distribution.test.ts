@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
 import {
-  ROOT, buildCLI, buildDesktop, bundlePlugins, expectedAssets, sha256, validateVersion, verifyAssets, writeChecksums,
+  ROOT, buildCLI, buildDesktop, bundlePlugins, expectedAssets, releaseTargets, sha256, validateVersion, verifyAssets, writeChecksums,
 } from '../scripts/release.ts';
 
 const VERSION = '1.2.3';
@@ -101,6 +101,27 @@ test('release asset set covers four CLI/desktop targets and a standalone plugin 
   assert.ok(expectedAssets('0.0.0-edge.abcdef123456').includes('tool-logger_0.0.0-edge.abcdef123456_linux_arm64.tar.gz'));
   for (const version of ['', '../escape', '1.2', '01.2.3', '1.2.3;touch bad']) assert.throws(() => validateVersion(version));
 });
+
+test('edge release omits macOS Intel while stable keeps it', () => {
+  const edge = '0.0.0-edge.abcdef123456';
+  assert.equal(expectedAssets(edge).length, 7);
+  assert.equal(expectedAssets(edge).some((name) => name.includes('darwin_amd64')), false);
+  assert.ok(expectedAssets(edge).includes(`tool-logger-desktop_${edge}_darwin_arm64.zip`));
+  assert.ok(expectedAssets(VERSION).includes(`tool-logger-desktop_${VERSION}_darwin_amd64.zip`));
+  assert.throws(() => buildCLI(edge, 'darwin', 'amd64', 'unused'), /unsupported target/);
+  assert.throws(() => buildDesktop(edge, 'darwin', 'amd64', 'unused'), /unsupported target/);
+});
+
+for (const { workflow, version } of [
+  { workflow: 'edge.yaml', version: '0.0.0-edge.abcdef123456' },
+  { workflow: 'release.yaml', version: VERSION },
+]) {
+  test(`${workflow} builds exactly the targets its release requires`, () => {
+    const source = readFileSync(join(ROOT, '.github/workflows', workflow), 'utf8');
+    const built = [...source.matchAll(/"os":"(\w+)","arch":"(\w+)"/g)].map(([, os, arch]) => `${os}/${arch}`);
+    assert.deepEqual(built.sort(), [...releaseTargets(version)].sort());
+  });
+}
 
 test('checksum generation requires exact complete assets and verification detects changes', (t) => {
   const f = fixture(t);
@@ -222,6 +243,21 @@ test('mixed edge metadata/manifest is rejected before installed files change', (
   const result = f.run('install-edge.sh');
   assert.equal(result.status, 1); assert.match(result.stderr, /release changed during download/);
   assert.equal(existsSync(join(f.home, '.local/bin/tool-logger')), false);
+});
+
+for (const script of ['install-edge.sh', 'install-desktop-edge.sh', 'install-plugins-edge.sh']) {
+  test(`${script} refuses Intel Macs before any downloads`, (t) => {
+    const f = fixture(t);
+    const result = f.run(script, [], { FIXTURE_OS: 'Darwin', FIXTURE_ARCH: 'x86_64' });
+    assert.equal(result.status, 1); assert.match(result.stderr, /no macOS Intel build/);
+    assert.equal(existsSync(join(f.home, 'downloads.log')), false);
+  });
+}
+
+test('stable installer still installs on Intel Macs', (t) => {
+  const f = fixture(t);
+  success(f.run('install.sh', [], { FIXTURE_OS: 'Darwin', FIXTURE_ARCH: 'x86_64' }));
+  assert.ok(readFileSync(join(f.home, 'downloads.log'), 'utf8').includes(`tool-logger_${VERSION}_darwin_amd64.tar.gz`));
 });
 
 test('missing Node 26 is reported before any downloads', (t) => {

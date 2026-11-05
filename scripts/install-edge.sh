@@ -10,6 +10,7 @@ has() { command -v "$1" >/dev/null 2>&1; }
 
 case "$(uname -s)" in Linux) OS=linux ;; Darwin) OS=darwin ;; *) fail 'supported OS: Linux, macOS' ;; esac
 case "$(uname -m)" in x86_64|amd64) ARCH=amd64 ;; aarch64|arm64) ARCH=arm64 ;; *) fail 'supported architecture: amd64, arm64' ;; esac
+[ "$CHANNEL/$OS/$ARCH" != edge/darwin/amd64 ] || fail 'edge has no macOS Intel build; use the stable installer'
 SELECTION=${1:-none}
 [ "$MODE" != plugins ] || SELECTION=${1:-all}
 [ "$#" -le 1 ] || fail 'usage: installer [codex|opencode|all]'

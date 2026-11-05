@@ -2,8 +2,9 @@
 
 ## Install from main
 
-Every push to main publishes prebuilt edge assets once all platforms build. CI
-runs no tests. No checkout or build:
+Every push to main publishes prebuilt edge assets once all edge targets build.
+Edge has no macOS Intel build; use stable there. CI runs no tests. No checkout
+or build:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/flexdinesh/tool-logger/main/scripts/install-desktop-edge.sh | sh
