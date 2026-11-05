@@ -1,0 +1,4 @@
+/linux-amd64/bin/tool-logger
+/linux-arm64/bin/tool-logger
+/darwin-amd64/bin/tool-logger
+/darwin-arm64/bin/tool-logger

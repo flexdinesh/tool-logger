@@ -154,7 +154,7 @@ components:
 
 # Design System: Tool Logger
 
-Graphite is a compact workspace for agent tool evidence in a MyGo webview and ordinary browsers. Charcoal/near-white surfaces, slate text, thin rules and restrained green accents keep calls dominant. The frontmatter retains the semantic palette and role scale; CSS maps those roles in apps/desktop/frontend/src/client/styles.css.
+Graphite is a compact workspace for agent tool evidence in a MyGo webview and ordinary browsers. Charcoal/near-white surfaces, slate text, thin rules and restrained green accents keep calls dominant. The frontmatter retains the semantic palette and role scale; CSS maps those roles in apps/web/src/client/styles.css.
 
 ## Web implementation
 

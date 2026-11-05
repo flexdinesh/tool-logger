@@ -4,12 +4,15 @@ package desktop
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/png"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -33,23 +36,34 @@ func GenerateBindings() error {
 	return mygo.App.Run()
 }
 
-// AcquireInstance must precede listening. A second launch forwards its arguments.
-func AcquireInstance() bool {
+// ConnectionState isolates webview cookies, preferences and native instance
+// forwarding. A connection never switches the server behind an existing window.
+func ConnectionState(state, identity string) string {
+	hash := sha256.Sum256([]byte(identity))
+	return filepath.Join(state, "views", hex.EncodeToString(hash[:]))
+}
+
+// AcquireInstance must precede listening. Only launches for the same connection
+// forward their arguments to the primary window.
+func AcquireInstance(state string) bool {
 	instanceOnce.Do(func() {
-		mygo.App.SetName("Tool Logger")
+		hash := sha256.Sum256([]byte(state))
+		mygo.App.SetName("Tool Logger " + hex.EncodeToString(hash[:8]))
+		mygo.App.SetPath(mygo.PathUserData, filepath.Join(state, "webview"))
 		primaryInstance = mygo.App.RequestSingleInstanceLock()
+		mygo.App.SetName("Tool Logger")
 	})
 	return primaryInstance
 }
 
-// Run owns the main-thread window lifetime. The caller owns both HTTP servers
-// and SQLite, closing them after Run returns. Cancellation requests application Quit.
+// Run owns the main-thread window lifetime. The caller closes its UI gateway
+// after Run returns. Collection is independent. Cancellation requests Quit.
 func Run(ctx context.Context, origin, state string, issueSession func() *http.Cookie) error {
 	u, err := url.Parse(origin)
-	if err != nil || u.Scheme != "http" || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
+	if err != nil || u.Scheme != "http" || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || net.ParseIP(u.Hostname()) == nil || !net.ParseIP(u.Hostname()).IsLoopback() {
 		return errors.New("desktop requires an HTTP UI origin")
 	}
-	if !AcquireInstance() {
+	if !AcquireInstance(state) {
 		return nil
 	}
 	app := mygo.App

@@ -2,7 +2,7 @@
 
 `generate.ts` defines OpenAPI 3.1 and the standalone 2020-12 event schema.
 Generated JSON is committed and checked for drift. Go DTOs live in
-`apps/desktop/internal/domain/api.go`; TypeScript encoders consume unknown JSON
+`packages/protocol/api.go` and `connection.go`; TypeScript encoders consume unknown JSON
 through explicit validation. Shared `fixtures/events.json` exercises the actual
 source encoder/schema and real Go HTTP server.
 
@@ -27,3 +27,18 @@ Admin GETs support ETags. Source tokens cannot read/administer; admin credential
 cannot ingest. Tokens returned by create/rotate are no-store and shown once.
 Cursors bind all filters, page size and insertion watermark. Late lifecycle
 evidence can update current call eligibility; refresh page one for current data.
+
+The collector defaults to a private Unix HTTP socket. Local control routes require
+its administration credential and are unavailable over TCP. Explicit remote
+activation adds TLS while retaining Unix access. Pairing invitations carry the
+endpoint, server UUID, SHA-256 certificate pin and a random, single-use code valid
+for ten minutes. The client verifies the pin before sending that code. Pairing
+issues an independent revocable client credential; source ingestion remains
+write-only. Remote client hashes persist in SQLite; TLS identity and listener
+configuration persist privately. Invitations expire on collector restart.
+
+Connection descriptors use schemaVersion 1, endpoint, token, serverId and a
+fingerprint for HTTPS. They are private regular JSON files. A Unix endpoint is
+`unix:///absolute/path`; remote endpoints use `https://host:port`. Each window owns
+one immutable descriptor and transport. Descriptor credentials must never enter
+browser storage or process arguments.

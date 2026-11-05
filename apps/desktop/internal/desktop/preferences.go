@@ -13,6 +13,52 @@ import (
 
 const maxPreferences = 64 << 10
 
+// PrepareConnectionState seeds the local collector's first view from existing
+// preferences. Other connections start independently. Original files are kept;
+// an existing connection's preferences always win over a migration seed.
+func PrepareConnectionState(state, identity string, local bool) (string, error) {
+	view := ConnectionState(state, identity)
+	if err := os.MkdirAll(filepath.Join(view, "webview"), 0700); err != nil {
+		return "", err
+	}
+	if !local {
+		return view, nil
+	}
+	for _, name := range []string{"webview-preferences.json", "native-preferences.json"} {
+		if _, err := os.Lstat(filepath.Join(view, name)); err == nil {
+			return view, nil
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return "", err
+		}
+	}
+	for _, name := range []string{"webview-preferences.json", "native-preferences.json"} {
+		data, err := readPreferences(filepath.Join(state, name), name == "webview-preferences.json")
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
+		file, err := os.OpenFile(filepath.Join(view, "native-preferences.json"), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+		if errors.Is(err, os.ErrExist) {
+			return view, nil
+		}
+		if err != nil {
+			return "", err
+		}
+		_, writeErr := file.Write(data)
+		if writeErr == nil {
+			writeErr = file.Sync()
+		}
+		if err := errors.Join(writeErr, file.Close()); err != nil {
+			_ = os.Remove(file.Name())
+			return "", err
+		}
+		break
+	}
+	return view, nil
+}
+
 // Shell is the entire bound service. Activity and administration use HTTP.
 type Shell struct {
 	state string

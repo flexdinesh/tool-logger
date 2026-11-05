@@ -1,0 +1,87 @@
+name: Edge release
+on:
+  workflow_run:
+    workflows: [Check]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  revision:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.revision.outputs.commit }}
+      version: ${{ steps.revision.outputs.version }}
+    steps:
+      - id: revision
+        env:
+          COMMIT: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+          echo "version=0.0.0-edge.${COMMIT:0:12}" >> "$GITHUB_OUTPUT"
+  build:
+    needs: revision
+    concurrency:
+      group: edge-build
+      cancel-in-progress: true
+    uses: ./.github/workflows/build.yaml
+    with:
+      ref: ${{ needs.revision.outputs.commit }}
+      version: ${{ needs.revision.outputs.version }}
+  publish:
+    needs: [revision, build]
+    runs-on: ubuntu-latest
+    # Never cancel an upload halfway through replacing edge assets.
+    concurrency:
+      group: edge-publish
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.revision.outputs.commit }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-complete
+          path: release-dist
+      - run: node scripts/release.ts verify release-dist
+      - name: Publish only a newer green main revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ needs.revision.outputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin +refs/heads/main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$COMMIT" origin/main
+          if git ls-remote --exit-code origin refs/tags/edge >/dev/null 2>&1; then
+            git fetch origin +refs/tags/edge:refs/tags/edge
+            previous="$(git rev-parse 'refs/tags/edge^{commit}')"
+            if [[ "$previous" != "$COMMIT" ]]; then
+              if git merge-base --is-ancestor "$COMMIT" "$previous"; then
+                echo 'Skipping stale edge build.'
+                exit 0
+              fi
+              git merge-base --is-ancestor "$previous" "$COMMIT"
+            fi
+          fi
+          if ! gh release view edge >/dev/null 2>&1; then
+            gh release create edge --target "$COMMIT" --title Edge --prerelease --latest=false --draft
+          fi
+          # Archives have revision-qualified names. Publish metadata last so
+          # installers either get one complete revision or fail before mutation.
+          gh release upload edge release-dist/*.tar.gz release-dist/*.zip release-dist/checksums.txt --clobber
+          gh release upload edge release-dist/release.json --clobber
+          git tag -f edge "$COMMIT"
+          git push origin refs/tags/edge --force
+          gh release edit edge --draft=false --prerelease --latest=false --title Edge --notes "Green main build $COMMIT"
+          # Keep only this revision after it is fully available.
+          gh release view edge --json assets --jq '.assets[].name' | while IFS= read -r asset; do
+            if [[ ! -f "release-dist/$asset" ]]; then gh release delete-asset edge "$asset" --yes; fi
+          done

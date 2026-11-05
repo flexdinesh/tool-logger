@@ -1,0 +1,75 @@
+name: Stable release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: stable-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+      commit: ${{ steps.tag.outputs.commit }}
+      published: ${{ steps.tag.outputs.published }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          number='(0|[1-9][0-9]*)'
+          [[ "$TAG" =~ ^v${number}\.${number}\.${number}$ ]]
+          commit="$(git rev-parse "refs/tags/${TAG}^{commit}")"
+          git fetch origin +refs/heads/main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$commit" origin/main
+          published=false
+          if gh release view "$TAG" >/dev/null 2>&1; then published=true; fi
+          {
+            echo "version=${TAG#v}"
+            echo "commit=$commit"
+            echo "published=$published"
+          } >> "$GITHUB_OUTPUT"
+  check:
+    needs: tag
+    if: needs.tag.outputs.published != 'true'
+    uses: ./.github/workflows/check.yaml
+    with:
+      ref: ${{ needs.tag.outputs.commit }}
+  build:
+    needs: [tag, check]
+    uses: ./.github/workflows/build.yaml
+    with:
+      ref: ${{ needs.tag.outputs.commit }}
+      version: ${{ needs.tag.outputs.version }}
+  publish:
+    needs: [tag, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-complete
+          path: release-dist
+      - run: node scripts/release.ts verify release-dist
+      - name: Publish once, never replace assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then exit 0; fi
+          gh release create "$TAG" release-dist/* --verify-tag --generate-notes --title "$TAG" --latest

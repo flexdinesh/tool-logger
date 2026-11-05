@@ -51,6 +51,51 @@ func TestPreferencesMigrationPreservesNativeFile(t *testing.T) {
 	}
 }
 
+func TestConnectionPreferencesSeedOnlyLocalHistoryAndKeepExistingSettings(t *testing.T) {
+	state := t.TempDir()
+	seed := `{"query":{"source":["local-source"]},"theme":"dark"}`
+	legacy := filepath.Join(state, "native-preferences.json")
+	if err := os.WriteFile(legacy, []byte(seed), 0644); err != nil {
+		t.Fatal(err)
+	}
+	local, err := PrepareConnectionState(state, "local-server", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote, err := PrepareConnectionState(state, "remote-server", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if local == remote {
+		t.Fatal("connections share native profile")
+	}
+	localShell, remoteShell := &Shell{state: local}, &Shell{state: remote}
+	if localShell.Preferences() != seed || remoteShell.Preferences() != "{}" {
+		t.Fatal("history preferences crossed connection boundary")
+	}
+	if err := localShell.SavePreferences(`{"theme":"light"}`); err != nil {
+		t.Fatal(err)
+	}
+	// Reopening must use the view's saved settings even if the old seed has
+	// since become unreadable. The legacy input remains untouched.
+	if err := os.Chmod(legacy, 0000); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := PrepareConnectionState(state, "local-server", true); err != nil {
+		t.Fatal(err)
+	}
+	if localShell.Preferences() != `{"theme":"light"}` {
+		t.Fatal("reopen replaced connection settings")
+	}
+	if err := os.Chmod(legacy, 0644); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(legacy)
+	if err != nil || string(data) != seed {
+		t.Fatal("modified legacy preferences", err)
+	}
+}
+
 func TestPreferencesRejectSymlinksAndDoNotFallBackOverBrokenNewFile(t *testing.T) {
 	state := t.TempDir()
 	shell := &Shell{state: state}

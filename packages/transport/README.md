@@ -1,21 +1,27 @@
 # Source transport
 
 Node.js 26, built-ins only. Hooks append complete native wrappers to a fresh
-`outbox` directory. This foreground worker delivers them over authenticated HTTP.
-Supervise exactly one worker per state directory. Hooks never start the worker or
+`outbox` directory. This foreground worker delivers them over authenticated HTTP,
+including private Unix sockets. The independent collector supervises the local
+worker installed by `tool-logger plugins install`. It retains worker ownership
+across collector crashes until the old worker exits. Supervise exactly one worker
+per state directory; stop an existing manually supervised worker before handing
+that directory to the collector. Hooks never start the worker or
 wait for network delivery. All local records remain append-only after delivery.
 
 ## Configure and run
 
-Use the native application's source setup to create a source and obtain its
-server-issued UUID and source write token. Administration credentials never belong
+Local plugin installation automatically provisions a source, preserving its
+existing UUID, token, journals and checkpoints. For a separately managed source,
+use the application's source setup to obtain its server-issued UUID and source
+write token. Administration credentials never belong
 in source configuration. Save this shape in a private file (mode `0600`):
 
 ```json
 {
   "schemaVersion": 1,
   "sourceId": "550e8400-e29b-41d4-a716-446655440000",
-  "endpoint": "http://127.0.0.1:4317",
+  "endpoint": "unix:///home/user/.local/state/tool-logger/collector/collector.sock",
   "token": "SOURCE_WRITE_TOKEN",
   "name": "Development laptop",
   "labels": { "service.name": "tool-logger", "deployment.environment.name": "development" }
@@ -24,7 +30,11 @@ in source configuration. Save this shape in a private file (mode `0600`):
 
 The endpoint is a base URL without credentials, query or fragment. The worker
 appends `/api/v1/ingest/events` and `/api/v1/ingest/heartbeat`. An optional base
-path is supported. HTTP is suitable for loopback; use SSH, VPN or HTTPS for
+path is supported for HTTP(S); Unix endpoints must name an absolute socket path.
+The collector defaults to Unix and exposes pinned TLS only when explicitly
+activated for remote clients. The Node sender's HTTPS transport uses standard CA
+verification; a remote desktop pairing credential is not a source credential.
+HTTP is suitable for a loopback SSH bridge; use SSH, VPN or HTTPS for
 encrypted remote connections. Public internet hosting is outside the supported
 deployment scope.
 
@@ -122,6 +132,7 @@ through checkpoint replay.
 
 ## Supervision examples
 
+These examples supervise a separate source, not a collector-owned local worker.
 Examples require absolute Node.js 26 and plugin paths. Configure first. Templates
 contain no credentials; `source.json` remains in the private persistent directory.
 
@@ -152,10 +163,13 @@ Docker:
 [compose.yaml](examples/compose.yaml) runs the canonical runtime with a persistent
 host state directory and restart policy. For an installed plugin, replace the
 runtime bind mount with its `transport` directory. Configure the state directory
-before starting. Use `http://host.docker.internal:4317` to reach a host server.
+before starting. For the default collector, mount its private Unix socket into
+the worker and configure that mounted `unix:///absolute/path` endpoint with the
+container source's own credential. A separately supplied loopback SSH bridge can
+also expose an HTTP endpoint, such as `http://host.docker.internal:14317`.
 Docker Desktop provides that hostname; Linux uses the template's `host-gateway`
-mapping. The desktop server must explicitly listen on a container-reachable
-address. Keep that listener restricted to the Docker/private network.
+mapping. Keep any bridge restricted to the Docker/private network. The collector's
+remote TCP listener uses TLS; it is not a plaintext HTTP bridge.
 
 ```sh
 export TOOL_LOGGER_SOURCE_UID=$(id -u)
@@ -176,14 +190,13 @@ Compose. Never put source tokens in Compose environment values.
 SSH reverse tunnel, from the desktop/server machine:
 
 ```sh
-ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -R 127.0.0.1:14317:127.0.0.1:4317 remote-host
+ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -R 127.0.0.1:14317:/absolute/collector/collector.sock remote-host
 ```
 
 The remote source uses endpoint `http://127.0.0.1:14317` and its own source token.
 Supervise SSH separately; delivery retries while the tunnel is unavailable. A
-private LAN/VPN source uses the server's private address and an explicit private
-listener. A bearer token authenticates requests; the tunnel/VPN/HTTPS supplies
-encryption. Token rotation replaces `source.json`; the worker reloads it without
+bearer token authenticates requests; SSH supplies encryption between machines.
+Token rotation replaces `source.json`; the worker reloads it without
 reassigning its journal identity.
 
 ## Development and integration

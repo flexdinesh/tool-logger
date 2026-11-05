@@ -31,8 +31,11 @@ export function parseSourceConfig(value: unknown): SourceConfig {
   let endpoint: URL;
   try { endpoint = new URL(value.endpoint); }
   catch { throw new Error('Invalid source endpoint'); }
-  if (!['http:', 'https:'].includes(endpoint.protocol) || endpoint.username || endpoint.password
+  if (!['http:', 'https:', 'unix:'].includes(endpoint.protocol) || endpoint.username || endpoint.password
       || endpoint.search || endpoint.hash || value.endpoint.includes('?') || value.endpoint.includes('#')) {
+    throw new Error('Invalid source endpoint');
+  }
+  if (endpoint.protocol === 'unix:' && (endpoint.host || !endpoint.pathname.startsWith('/') || endpoint.pathname === '/')) {
     throw new Error('Invalid source endpoint');
   }
   const labels: Record<string, string> = {};

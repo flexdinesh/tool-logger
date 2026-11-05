@@ -1,7 +1,8 @@
 # Tool Logger workspace
 
 - `plugins/codex-tool-logger/`, `plugins/opencode-tool-logger/`: self-contained private pnpm packages. Register only Codex plugins in `.agents/plugins/marketplace.json`.
-- `apps/desktop/`: one Go module, MyGo webview shell, React/Graphite frontend and owned HTTP servers. Linux/macOS, plus local browser access.
+- One root Go module. `apps/cli/`: headless commands/process launch. `apps/server/`: collector and private persistence/harness/HTTP packages. `apps/desktop/`: MyGo webview shell. `apps/web/`: shared React/Graphite frontend.
+- `packages/client/`: immutable Unix/pinned-TLS API connections. `packages/webui/`: loopback UI gateway and embedded frontend. Keep server and UI dependency graphs separate; desktop never imports collector storage.
 - `packages/protocol/`: OpenAPI/schema source, generated artifacts, shared Go/TypeScript fixtures.
 - `packages/transport/`: Node built-ins only forwarder. Sync installed plugin copies and check drift after changes.
 - pnpm 11, current lockfile, package-local runnable scripts; root scripts aggregate checks.
@@ -13,8 +14,9 @@
 - Forwarder checkpoints advance after durable ACK only. Preserve rejects, retry temporary failures, bound memory/requests, surface errors. One supervised worker per source directory.
 - Server owns SQLite WAL, immutable events and transactional indexed projections. Result receipt does not establish success.
 - UI data uses typed REST exclusively. Keep MyGo in the desktop shell; bindings only own preferences and lifecycle. Keep MyGo out of domain/harness/persistence/HTTP code. Explicit composition and small consumer-owned boundary interfaces; no generic repositories or service locators.
-- Loopback default; source write and administration credentials separate. Hash source tokens. No public-internet deployment scope.
+- Private Unix socket default; explicit remote mode enables network TLS with pinned fingerprints and single-use expiring pairing. Source write, local administration and revocable remote client credentials remain separate. Hash source/client tokens. No public-internet deployment scope.
 - UI listener stays on literal loopback, separate from ingestion. Browser login exchanges the admin token for an opaque HttpOnly session; never persist the admin token in browser storage. Preserve exact-origin checks and restricted MyGo navigation.
 - Follow DESIGN.md semantic roles. React owns view state and rejects stale responses; MyGo lifecycle state stays on the main thread.
 - Track parity in docs/native-parity.md. Browser tests and real HTTP/SQLite boundary tests; MyGo process automation in e2e builds only. Never claim skipped display/platform tests passed.
 - Run pnpm check for plugin/workspace changes. Native process automation for UI/lifecycle changes; platform packaging before handoff.
+- Collector lifetime is independent of UI Quit. One supervised Node worker per source state; explicit server stop ends collection. Releases contain prebuilt assets; never commit generated frontend or package output. Stable tags are immutable; edge requires green main checks and all platform builds.

@@ -15,7 +15,9 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
-  apps/desktop:
+  apps/desktop: {}
+
+  apps/web:
     dependencies:
       '@radix-ui/react-dialog':
         specifier: 1.1.23
