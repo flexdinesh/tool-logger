@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "tsBuildInfoFile": "../../.scratch/typecheck/web-node.tsbuildinfo",
     "lib": [
       "ES2024",
       "DOM",
