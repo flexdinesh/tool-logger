@@ -1,4 +1,4 @@
-import { realpathSync } from 'node:fs';
+import { createReadStream, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { configureSource, loadSourceConfig, readPrivateJson, stateDirectory } from './config.ts';
@@ -70,9 +70,14 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   if (command === 'run' && input === undefined) {
     const controller = new AbortController();
     const stop = () => controller.abort();
+    // A private inherited pipe ties a supervised worker to its collector even
+    // when the collector is killed. FD 4 retains the inherited worker flock.
+    const owner = process.env.TOOL_LOGGER_OWNER_FD === '3'
+      ? createReadStream('', { fd: 3, autoClose: true }) : null;
+    owner?.once('end', stop); owner?.once('error', stop); owner?.resume();
     process.once('SIGINT', stop); process.once('SIGTERM', stop);
     try { await runForwarder(directory, { signal: controller.signal }); }
-    finally { process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop); }
+    finally { owner?.destroy(); process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop); }
   } else if (command === 'status' && input === undefined) {
     console.log(JSON.stringify(await sourceStatus(directory)));
   } else if (command === 'configure' && input && extra.length === 0) {

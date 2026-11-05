@@ -2,7 +2,7 @@
 
 The React/Graphite interface replaces MyGo native widgets. One frontend serves the MyGo webview and ordinary local browsers. Existing SQLite, ingestion and source identity contracts remain intact. Browser phone layouts are restored; MyGo retains its Linux/macOS desktop lifecycle.
 
-Browser evidence below lives in `apps/desktop/tests/browser/viewer.spec.ts` and runs against the actual Go executable, both HTTP listeners and temporary SQLite. Unit evidence lives in `apps/desktop/tests/frontend.test.ts`; HTTP/session evidence in `internal/webui/server_test.go`.
+Browser evidence lives in `apps/web/tests/browser/viewer.spec.ts` and runs against the CLI's loopback gateway, independent collector and temporary SQLite. Unit evidence lives in `apps/web/tests/frontend.test.ts`; HTTP/session evidence in `packages/webui/*test.go`.
 
 | Behavior | Replacement evidence |
 | --- | --- |
@@ -25,8 +25,9 @@ Browser evidence below lives in `apps/desktop/tests/browser/viewer.spec.ts` and 
 | Per-client preferences and compatible native migration | native preferences migrate scopes, theme, time, inspector and column layout; MyGo uses validated shell preferences and exposes Quit without browser storage; TestPreferencesMigrationPreservesNativeFile |
 | Startup preference failure exposes recovery | unknown bridge preference values expose startup recovery |
 | UI origin/session isolation, no ingestion proxy or credential forwarding | TestHostOriginAndSessionIsolation; TestProxyCredentialAndHeaderBoundary; TestEmbeddedAssetsAndPathBoundaries |
-| Composed --serve process works without a display, owns both listeners and shuts down SQLite | TestServeProcessOwnsHTTPAuthenticationIngestionAndShutdownWithoutDisplay; TestStartupFailureReleasesAlreadyOpenedIngestionListener |
+| Headless CLI owns an independent collector; browser exit leaves it running | TestHeadlessCLIConcurrentStartupBrowserAndCollectorLifetimes; TestCollectorProcessConcurrentStartupDurableDeliveryAndShutdown |
 | Packaging binding generation never opens user state, listeners or a display | TestBindingGenerationDoesNotOpenStateOrListeners |
-| Native close retains ingestion, second launch reopens, Quit stops both listeners | TestComposedAppOwnsServerThroughWindowCloseAndQuit, opt-in e2e on a desktop/display-equipped CI runner |
+| Native close/activation retain collection; Quit stops only UI | TestDesktopQuitLeavesCollectorRunning, opt-in e2e on a desktop/display-equipped CI runner |
+| Local and remote windows isolate profiles, credentials and histories | TestDesktopConnectionsKeepNativeProfilesAndHistoriesSeparate; TestRemoteCommandConnectAndPinnedBrowserUseIndependentHistory; TestPinnedRemoteGatewayRevocationAndConnectionIsolation |
 
 Local verification uses headless browsers, real HTTP/SQLite, Go race/vet and available MyGo smoke checks. Native rendering, tray/Dock behavior and real window lifecycle require a display and platform webview. This development machine lacks them; a skipped process test is not a pass. Linux/macOS CI installs the required dependencies and runs process automation plus platform packaging. Cross-compilation does not establish another platform's runtime behavior.

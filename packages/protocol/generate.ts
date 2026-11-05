@@ -21,6 +21,14 @@ const sourceRequest = object({ name: { type: 'string', minLength: 1, maxLength: 
 const source = object({ id: uuid, name: text, hostname: text, platform: text, labels: map(text), status: { enum: ['never-seen', 'online', 'stale', 'degraded', 'revoked'] }, lastSeenAt: nullable(timestamp), lastEventAt: nullable(timestamp), pendingEvents: integer, rejectedEvents: integer, lastError: text });
 const summary = object({ id: text, sourceId: uuid, harness: text, harnessApiVersion: nullable(text), tool: text, observedAt: timestamp, startedAt: nullable(timestamp), finishedAt: nullable(timestamp), lifecycle: { enum: ['awaiting', 'finished', 'result-only'] }, outcome: { enum: ['success', 'failure', 'unknown'] }, durationMs: nullable(number), sessionId: nullable(text), agentId: nullable(text), directory: nullable(text), repository: nullable(text), inputSummary: text, attributes: map(true) });
 const schemas = {
+  Connection: object({ schemaVersion: { const: 1 }, endpoint: { type: 'string', pattern: '^(unix:///|https://)' }, token: text, fingerprint: { type: 'string', pattern: '^[0-9a-f]{64}$' }, serverId: uuid }, ['schemaVersion', 'endpoint', 'token', 'serverId']),
+  SourceConfig: object({ schemaVersion: { const: 1 }, sourceId: uuid, endpoint: text, token: text, name: text, labels: map(text) }),
+  ServerStatus: object({ ready: boolean, pid: integer, workerPid: integer, workerError: text, serverId: uuid, remoteEndpoint: text }, ['ready', 'pid', 'workerPid', 'serverId']),
+  RemoteRequest: object({ listen: text, advertise: text }),
+  Invitation: object({ connectionString: text, endpoint: text, fingerprint: text, serverId: uuid, expiresAt: timestamp }),
+  PairRequest: object({ code: text }),
+  LocalSourceRequest: object({ workerPath: text }),
+  RemoteClientList: object({ data: array(object({ id: uuid, createdAt: timestamp })) }),
   Event: event,
   IngestRequest: object({ events: { ...array(ref('Event')), minItems: 1, maxItems: 500 } }),
   Acknowledgement: object({ accepted: array(uuid), duplicates: array(uuid) }),
@@ -56,8 +64,15 @@ function operation(operationId: string, response: string | null, options: { body
 const id = (name: string) => [{ name, in: 'path', required: true, schema: text }];
 const openapi = {
   openapi: '3.1.0', info: { title: 'Tool Logger REST API', version: '1.0.0', license: { name: 'Private local workspace', identifier: 'LicenseRef-Private' }, description: 'Native observation and durable source ingestion. Tokens are separate read/admin and source-scoped write credentials. Requests are bounded to 9 MiB, accommodating 8 MiB native journal records plus envelope overhead. Acknowledgements follow durable commit. Source/event IDs deduplicate retries; conflicting contents return 409. Native payloads remain complete JSON objects.' },
-  servers: [{ url: 'http://127.0.0.1:4317', description: 'Default local listener' }],
+  servers: [{ url: 'http://localhost', description: 'Synthetic HTTP base carried over the private Unix socket. Remote connections use pinned HTTPS.' }],
   paths: {
+    '/api/v1/pair': { post: operation('pairRemoteClient', 'Connection', { public: true, body: 'PairRequest' }) },
+    '/api/v1/control/status': { get: operation('getCollectorStatus', 'ServerStatus') },
+    '/api/v1/control/stop': { post: operation('stopCollector', null, { status: 204 }) },
+    '/api/v1/control/remote': { post: operation('enableRemote', 'Invitation', { body: 'RemoteRequest' }) },
+    '/api/v1/control/local-source': { post: operation('ensureLocalSource', 'SourceConfig', { body: 'LocalSourceRequest' }) },
+    '/api/v1/control/clients': { get: operation('listRemoteClients', 'RemoteClientList') },
+    '/api/v1/control/clients/{id}': { delete: operation('revokeRemoteClient', null, { parameters: id('id'), status: 204 }) },
     '/healthz': { get: { ...operation('getHealth', null, { public: true }), responses: { '200': { description: 'Server alive', content: json(object({ status: text })) }, '405': { description: 'Method not allowed' } } } },
     '/api/v1/harnesses': { get: operation('listHarnesses', 'HarnessList') },
     '/api/v1/sources': { get: operation('listSources', 'SourceList'), post: operation('createSource', 'SourceCredentials', { body: 'SourceRequest', status: 201 }) },

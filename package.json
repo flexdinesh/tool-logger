@@ -8,9 +8,15 @@
     "pnpm": "11.x"
   },
   "scripts": {
-    "check": "node scripts/workspace.ts check && pnpm --filter @tool-logger/transport check && pnpm --filter @tool-logger/protocol check && pnpm typecheck && pnpm test",
+    "check": "node scripts/workspace.ts check && node scripts/installers.ts --check && pnpm --filter @tool-logger/transport check && pnpm --filter @tool-logger/protocol check && pnpm typecheck && pnpm test",
     "typecheck": "tsc --noEmit && pnpm --filter @tool-logger/transport typecheck && pnpm --filter @tool-logger/protocol typecheck",
-    "test": "node --test tests/*.test.ts && pnpm --filter @tool-logger/transport test && pnpm --filter @tool-logger/desktop check",
+    "test": "node --test tests/*.test.ts && pnpm --filter @tool-logger/transport test && pnpm --filter @tool-logger/web check && pnpm --filter @tool-logger/desktop check",
+    "build": "pnpm --filter @tool-logger/web build && go build -o build/tool-logger ./apps/cli && pnpm --filter @tool-logger/desktop build",
+    "start": "pnpm --filter @tool-logger/web build && go run ./apps/cli",
+    "build:cli": "pnpm --filter @tool-logger/web build && go build -o build/tool-logger ./apps/cli",
+    "test:distribution": "node scripts/installers.ts --check && node --test tests/distribution.test.ts tests/workspace.test.ts tests/opencode-workspace.test.ts",
+    "installers:sync": "node scripts/installers.ts",
+    "release": "node scripts/release.ts",
     "new:codex": "node scripts/workspace.ts new-codex",
     "link:codex": "node scripts/workspace.ts link-codex",
     "link:opencode": "node scripts/workspace.ts link-opencode"

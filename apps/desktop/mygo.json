@@ -1,14 +1,21 @@
 {
   "name": "Tool Logger",
-  "slug": "tool-logger",
+  "slug": "tool-logger-desktop",
   "identifier": "dev.tool-logger.desktop",
   "version": "0.1.0",
-  "main": "./cmd/tool-logger",
+  "main": "./cmd/tool-logger-desktop",
   "out": "build",
   "bindings": ".mygo/bindings.ts",
-  "buildCommand": "pnpm build:web",
-  "devCommand": "pnpm dev:web",
+  "buildCommand": "pnpm --dir ../web build && pnpm build:cli",
+  "devCommand": "pnpm --dir ../web dev",
   "devUrl": "http://127.0.0.1:5173",
-  "urlSchemes": ["tool-logger"],
-  "linux": { "categories": ["Development"], "webview": true }
+  "urlSchemes": [
+    "tool-logger"
+  ],
+  "linux": {
+    "categories": [
+      "Development"
+    ],
+    "webview": true
+  }
 }

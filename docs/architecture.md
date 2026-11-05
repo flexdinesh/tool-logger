@@ -1,23 +1,25 @@
 # Observer architecture
 
-One Go executable owns the REST server, SQLite database, separate loopback UI server and MyGo webview. The same embedded React frontend runs in MyGo and ordinary local browsers. Source hooks journal locally; supervised Node workers deliver over HTTP. Sources need neither Go nor repository scripts at runtime.
+The headless `tool-logger` CLI manages an independent collector. A separate MyGo executable owns the webview and a loopback UI gateway; browser mode uses the same gateway and React frontend. The collector owns SQLite and supervises one Node source worker. Local clients and workers use its private Unix socket; explicit remote mode adds a pinned-TLS TCP listener. Installed use needs no checkout or build.
 
 ## Boundaries
 
 | Package | Ownership |
 | --- | --- |
-| domain | Serializable HTTP DTOs, no UI/SQL/HTTP imports |
-| harnesses | Validate native wrappers, correlate/project native semantics |
-| sqlite | Immutable ingestion, credentials, health, projections, queries, migrations |
-| httpapi | Authentication, routing, bounded validation, errors, ETags |
-| apiclient | Typed cancellable REST, bounded conditional-response cache |
-| frontend | React presentation/state, typed REST parsing, async coordination, per-client preferences |
-| webui | Embedded assets, browser sessions, exact-origin checks, bounded REST proxy |
-| desktop | Main-thread MyGo lifecycle, menus, navigation restrictions, private desktop preferences |
-| app / cmd | Filesystem credentials, listener and resource composition |
-| transport | Source configuration, journal scanning, HTTP delivery/checkpoints/diagnostics |
+| `apps/cli` | Headless commands, collector/desktop launch and browser fallback |
+| `apps/server` | Collector, private listeners/control, TLS pairing and worker supervision |
+| `apps/server/internal/harnesses` | Native validation, correlation and projection semantics |
+| `apps/server/internal/sqlite` | Immutable ingestion, credentials, projections and migrations |
+| `apps/server/internal/httpapi` | Authentication, routes, bounded validation, errors and ETags |
+| `apps/desktop` | MyGo lifecycle, menus, navigation and private desktop preferences |
+| `apps/web` | React presentation, typed REST parsing and stale-response rejection |
+| `packages/protocol` | Versioned serializable contracts, OpenAPI and shared fixtures |
+| `packages/client` | Immutable connection descriptors, Unix/pinned-TLS clients and pairing |
+| `packages/webui` | Embedded frontend, loopback sessions and bounded REST gateway |
+| `packages/transport` | Node source configuration, journal delivery and checkpoints |
+| `packages/installer` | Standalone harness registration, snapshots and ownership checks |
 
-UI data uses HTTP exclusively; the UI proxy authenticates sessions and forwards an administration bearer credential to the existing REST API. MyGo bindings expose only desktop preferences and Quit. Keep MyGo imports out of HTTP/domain/persistence code. Use explicit composition and small consumer-owned boundary interfaces. No service locator, generic repository or speculative dynamic extension framework.
+One root Go module retains native package privacy. Collector internals cannot be imported by UI packages. Dependency checks prevent MyGo/UI imports in the collector and persistence imports in desktop. The gateway receives an immutable connection and its HTTP client through explicit composition; Unix/TLS policy changes dialing, not domain behavior. UI data uses REST exclusively. MyGo bindings expose preferences and Quit. No service locator or generic repository.
 
 ## Identity and semantics
 
@@ -45,13 +47,15 @@ Facets omit their own dimension and respect other filters. Facets/tool usage cap
 
 ## Credentials and lifecycle
 
-Administration credentials live privately in collector/admin.token. Source creation returns a random token once; SQLite stores only its hash. Rotation/revocation retain history. Source credentials cannot read/administer; admin credentials cannot ingest. Loopback is default; private-network bindings are explicit.
+Local administration credentials live privately in collector/admin.token. Source creation returns a random token once; SQLite stores only its hash. Rotation/revocation retain history. Source credentials cannot read/administer; admin credentials cannot ingest. The default socket is mode 0600 inside the private collector directory. Local provisioning preserves existing source identity and serializes with the collector's database writer.
 
-The UI listens separately on literal loopback, default 127.0.0.1:4318. Remote/private-network ingestion never exposes UI routes. Browsers sign in with the private administration token once per session; Go issues an opaque HttpOnly SameSite=Strict cookie, retains only its hash in a bounded process-local session map, and forwards the administration token server-side. Sessions expire after twelve hours, logout or restart. Source tokens cannot sign in. Host/Origin checks protect routes and mutations; no cross-origin API access is enabled. SSH tunnels preserve the configured UI origin.
+Explicit remote mode adds TLS on network interfaces, default port 4317, and retains the local socket. Invitations contain the endpoint, stable certificate fingerprint and a single-use random pairing code expiring after ten minutes. Pairing checks the certificate before transmitting the code and returns a revocable remote client credential; SQLite stores its hash. Local control endpoints remain unavailable over TCP. No remote UI assets are served.
+
+Each UI gateway listens on literal loopback and targets one immutable collector connection. Go retains the upstream credential; browsers receive an opaque HttpOnly SameSite=Strict session cookie. A single-use short-lived browser launch capability bootstraps the session without exposing the upstream credential. Host/Origin checks, isolated cookie names and restricted proxy routes prevent sessions crossing connections. Credentials never enter browser storage. Normal logout, expiry or gateway restart invalidates the session.
 
 MyGo installs its session cookie from Go, trusts only the exact UI origin and opens external web links outside the application. Desktop settings are private Go-owned files; compatible native settings seed the first webview launch without changing the original file. Browser settings stay in that browser. Activity data and credentials never enter preference storage.
 
-Window close hides the UI while ingestion continues. Single-instance activation reopens it. Quit ends the event loop, shuts down both HTTP listeners and closes storage. --serve runs both servers without a window or display initialization. Browser logout or tab close leaves ingestion running. Startup/status never print credentials or payloads.
+Window close hides the UI; activation reopens it. Quit stops that UI process and gateway, leaving collection running. Browser exit likewise leaves collection running. `server stop` shuts down collector listeners, its supervised worker and SQLite. `remote` enables the network listener on the existing collector rather than starting another writer. Crashes release process locks; restart retains database, source identity and TLS identity. Ordinary status never prints credentials or payloads; only explicit remote pairing prints its expiring invitation.
 
 ## Verification and scale
 

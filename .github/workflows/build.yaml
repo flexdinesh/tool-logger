@@ -1,0 +1,104 @@
+name: Build release assets
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  packages:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest, os: linux, arch: amd64 }
+          - { runner: ubuntu-24.04-arm, os: linux, arch: arm64 }
+          - { runner: macos-15-intel, os: darwin, arch: amd64 }
+          - { runner: macos-latest, os: darwin, arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @tool-logger/web build
+      - name: Package CLI and MyGo desktop
+        env:
+          VERSION: ${{ inputs.version }}
+          TARGET_OS: ${{ matrix.os }}
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          node scripts/release.ts cli "$VERSION" "$TARGET_OS" "$TARGET_ARCH" release-dist
+          node scripts/release.ts desktop "$VERSION" "$TARGET_OS" "$TARGET_ARCH" release-dist
+      - name: Extract and smoke test native CLI
+        env:
+          VERSION: ${{ inputs.version }}
+          TARGET_OS: ${{ matrix.os }}
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: node scripts/release-smoke.ts "$VERSION" "$TARGET_OS" "$TARGET_ARCH" release-dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: assets-${{ matrix.os }}-${{ matrix.arch }}
+          path: release-dist/*
+          if-no-files-found: error
+          compression-level: 0
+  plugins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - run: pnpm install --frozen-lockfile
+      - name: Bundle standalone installer and snapshots
+        env:
+          VERSION: ${{ inputs.version }}
+        run: node scripts/release.ts plugins "$VERSION" release-dist
+      - run: node --test tests/distribution.test.ts tests/workspace.test.ts tests/opencode-workspace.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: assets-plugins
+          path: release-dist/*
+          if-no-files-found: error
+          compression-level: 0
+  assets:
+    needs: [packages, plugins]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: assets-*
+          path: release-dist
+          merge-multiple: true
+      - name: Require all nine assets and write revision checksums
+        env:
+          VERSION: ${{ inputs.version }}
+        run: node scripts/release.ts checksums "$VERSION" release-dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-complete
+          path: release-dist/*
+          if-no-files-found: error
+          compression-level: 0

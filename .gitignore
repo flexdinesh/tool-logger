@@ -8,3 +8,7 @@ apps/desktop/build/
 apps/desktop/.mygo/
 apps/desktop/tool-logger
 apps/desktop/internal/webui/dist/
+packages/webui/dist/
+apps/desktop/.release-*/
+build/
+release-dist/
