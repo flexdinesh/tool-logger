@@ -110,10 +110,7 @@ func TestDevelopmentCompanionStartsRealCollectorWithoutDisplay(t *testing.T) {
 	t.Setenv("DISPLAY", "")
 	t.Setenv("WAYLAND_DISPLAY", "")
 	companion := filepath.Join(directory, ".mygo", "tool-logger")
-	command := exec.Command("go", "build", "-o", companion, "../../../cli")
-	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("build development CLI: %v: %s", err, output)
-	}
+	copyProcessCLI(t, companion)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	if err := startCollectorCompanion(ctx, filepath.Join(directory, ".mygo", "dev", "tool-logger-desktop"), companion); err != nil {

@@ -6,6 +6,8 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".scratch/typecheck/workspace.tsbuildinfo",
     "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,

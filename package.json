@@ -8,11 +8,12 @@
     "pnpm": "11.x"
   },
   "scripts": {
-    "check": "node scripts/workspace.ts check && node scripts/installers.ts --check && pnpm --filter @tool-logger/transport check && pnpm --filter @tool-logger/protocol check && pnpm typecheck && pnpm test",
+    "check": "node scripts/check-pr.ts default",
     "check:pr": "node scripts/check-pr.ts",
-    "typecheck": "tsc --noEmit && pnpm --filter @tool-logger/transport typecheck && pnpm --filter @tool-logger/protocol typecheck",
-    "test": "node --test tests/*.test.ts && pnpm --filter @tool-logger/transport test && pnpm --filter @tool-logger/web check && pnpm --filter @tool-logger/desktop check",
-    "build": "pnpm --filter @tool-logger/web build && go build -o build/tool-logger ./apps/cli && pnpm --filter @tool-logger/desktop build",
+    "check:full": "node scripts/check-pr.ts full",
+    "typecheck": "tsc --noEmit && pnpm --recursive --workspace-concurrency=2 --filter @tool-logger/transport --filter @tool-logger/protocol --filter @tool-logger/web --filter @tool-logger/desktop typecheck",
+    "test": "node --test tests/*.test.ts && pnpm --filter @tool-logger/transport test && pnpm --filter @tool-logger/web test && pnpm --filter @tool-logger/desktop test",
+    "build": "pnpm --filter @tool-logger/web build && go build -o build/tool-logger ./apps/cli && pnpm --filter @tool-logger/desktop build:prepared",
     "start": "pnpm --filter @tool-logger/web build && go run ./apps/cli",
     "build:cli": "pnpm --filter @tool-logger/web build && go build -o build/tool-logger ./apps/cli",
     "test:distribution": "node scripts/installers.ts --check && node --test tests/distribution.test.ts tests/workspace.test.ts tests/opencode-workspace.test.ts",

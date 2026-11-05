@@ -1,4 +1,5 @@
 {
   "extends": "../../tsconfig.json",
+  "compilerOptions": { "tsBuildInfoFile": "../../.scratch/typecheck/transport.tsbuildinfo" },
   "include": ["src/**/*.ts", "tests/**/*.ts", "sync.ts"]
 }

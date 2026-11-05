@@ -69,7 +69,7 @@ test('links exactly one V1 entrypoint without editing config', (t) => {
   assert.equal(lstatSync(join(f.configDirectory, 'opencode.json'), { throwIfNoEntry: false }), undefined);
 });
 
-test('V2 wins and safely replaces an owned V1 link', (t) => {
+test('V2 wins, safely replaces an owned V1 link and relinks idempotently', (t) => {
   const f = fixture(t);
   linkOpenCodePlugin(f.root, 'opencode-tool-logger', {
     configDirectory: f.configDirectory,
@@ -81,15 +81,12 @@ test('V2 wins and safely replaces an owned V1 link', (t) => {
   });
   assert.equal(realpathSync(f.destination), realpathSync(f.v2));
   assert.deepEqual(readdirSync(dirname(f.destination)), ['opencode-tool-logger.ts']);
-});
-
-test('relink is idempotent', (t) => {
-  const f = fixture(t);
-  const options = { configDirectory: f.configDirectory, commandVersion: () => '0.0.0-beta' };
-  linkOpenCodePlugin(f.root, 'opencode-tool-logger', options);
   const target = readlinkSync(f.destination);
-  linkOpenCodePlugin(f.root, 'opencode-tool-logger', options);
+  linkOpenCodePlugin(f.root, 'opencode-tool-logger', {
+    configDirectory: f.configDirectory, commandVersion: () => '0.0.0-beta',
+  });
   assert.equal(readlinkSync(f.destination), target);
+  assert.deepEqual(readdirSync(dirname(f.destination)), ['opencode-tool-logger.ts']);
 });
 
 test('refuses unrelated files and links', (t) => {

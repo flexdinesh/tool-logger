@@ -5,7 +5,7 @@ import {
   readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import type { TestContext } from 'node:test';
 import {
   ROOT, buildCLI, buildDesktop, bundlePlugins, expectedAssets, releaseTargets, sha256, validateVersion, verifyAssets, writeChecksums,
@@ -18,6 +18,40 @@ function executable(path: string, source: string): void {
   writeFileSync(path, source); chmodSync(path, 0o755);
 }
 
+let releaseFixtureDirectory: string | undefined;
+after(() => {
+  if (releaseFixtureDirectory) rmSync(releaseFixtureDirectory, { recursive: true, force: true });
+});
+
+// Generate once per test process. Every fixture copies these assets before mutation.
+function releaseAssets(): string {
+  if (releaseFixtureDirectory) return join(releaseFixtureDirectory, 'assets');
+  mkdirSync(join(ROOT, '.scratch'), { recursive: true });
+  releaseFixtureDirectory = mkdtempSync(join(ROOT, '.scratch/distribution-assets-'));
+  const assets = join(releaseFixtureDirectory, 'assets');
+  const staging = join(releaseFixtureDirectory, 'staging');
+  mkdirSync(assets); mkdirSync(staging);
+  const mockCLI = '#!/bin/sh\nset -eu\nif [ "$1" = --version ]; then printf "tool-logger 1.2.3 fixture\\n"; exit 0; fi\nprintf "%s\\n" "$@" >> "$HOME/cli.log"\nif [ "$1" = plugins ]; then node "$5/install.ts" "$3"; fi\n';
+  const archive = (name: string, desktop: boolean, os: string) => {
+    const directory = join(staging, name);
+    mkdirSync(directory);
+    executable(join(directory, 'tool-logger'), mockCLI);
+    if (desktop) {
+      if (os === 'linux') executable(join(directory, 'tool-logger-desktop'), '#!/bin/sh\nexit 0\n');
+      else executable(join(directory, 'Tool Logger.app/Contents/MacOS/tool-logger-desktop'), '#!/bin/sh\nexit 0\n');
+    }
+    if (desktop && os === 'darwin') execFileSync('zip', ['-qr', join(assets, `${name}.zip`), name], { cwd: staging });
+    else execFileSync('tar', ['-czf', join(assets, `${name}.tar.gz`), '-C', staging, name]);
+  };
+  for (const os of ['linux', 'darwin']) for (const arch of ['amd64', 'arm64']) {
+    archive(`tool-logger_${VERSION}_${os}_${arch}`, false, os);
+    archive(`tool-logger-desktop_${VERSION}_${os}_${arch}`, true, os);
+  }
+  bundlePlugins(VERSION, assets);
+  writeChecksums(VERSION, assets);
+  return assets;
+}
+
 function fixture(t: TestContext) {
   mkdirSync(join(ROOT, '.scratch'), { recursive: true });
   const temporary = mkdtempSync(join(ROOT, '.scratch/distribution-test-'));
@@ -25,8 +59,7 @@ function fixture(t: TestContext) {
   const home = join(temporary, 'home with spaces');
   const bin = join(temporary, 'bin');
   const assets = join(temporary, 'assets');
-  const staging = join(temporary, 'staging');
-  mkdirSync(home); mkdirSync(bin); mkdirSync(assets); mkdirSync(staging);
+  mkdirSync(home); mkdirSync(bin);
   const environment = {
     ...process.env, HOME: home, CODEX_HOME: join(home, '.codex'), XDG_DATA_HOME: join(home, '.local/share'),
     XDG_CONFIG_HOME: join(home, '.config'), OPENCODE_CONFIG_DIR: join(home, '.config/opencode'),
@@ -60,24 +93,7 @@ else if (args[1] === 'add') {
 `);
   executable(join(bin, 'opencode'), '#!/bin/sh\nprintf "opencode 1.18.0\\n"\n');
   executable(join(bin, 'opencode2'), '#!/bin/sh\n[ -z "$OPENCODE_V1_ONLY" ] || exit 1\nprintf "opencode2 2.0.0\\n"\n');
-  const mockCLI = '#!/bin/sh\nset -eu\nif [ "$1" = --version ]; then printf "tool-logger 1.2.3 fixture\\n"; exit 0; fi\nprintf "%s\\n" "$@" >> "$HOME/cli.log"\nif [ "$1" = plugins ]; then node "$5/install.ts" "$3"; fi\n';
-  const archive = (name: string, desktop: boolean, os: string) => {
-    const directory = join(staging, name);
-    mkdirSync(directory);
-    executable(join(directory, 'tool-logger'), mockCLI);
-    if (desktop) {
-      if (os === 'linux') executable(join(directory, 'tool-logger-desktop'), '#!/bin/sh\nexit 0\n');
-      else executable(join(directory, 'Tool Logger.app/Contents/MacOS/tool-logger-desktop'), '#!/bin/sh\nexit 0\n');
-    }
-    if (desktop && os === 'darwin') execFileSync('zip', ['-qr', join(assets, `${name}.zip`), name], { cwd: staging });
-    else execFileSync('tar', ['-czf', join(assets, `${name}.tar.gz`), '-C', staging, name]);
-  };
-  for (const os of ['linux', 'darwin']) for (const arch of ['amd64', 'arm64']) {
-    archive(`tool-logger_${VERSION}_${os}_${arch}`, false, os);
-    archive(`tool-logger-desktop_${VERSION}_${os}_${arch}`, true, os);
-  }
-  bundlePlugins(VERSION, assets);
-  writeChecksums(VERSION, assets);
+  cpSync(releaseAssets(), assets, { recursive: true });
   const app = join(environment.XDG_DATA_HOME, 'tool-logger');
   const run = (script: string, args: string[] = [], overrides: Record<string, string> = {}) => spawnSync('sh', [join(ROOT, 'scripts', script), ...args], {
     env: { ...environment, ...overrides }, encoding: 'utf8', timeout: 30_000,

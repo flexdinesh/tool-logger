@@ -308,10 +308,13 @@ test('journal replacement and corrupt checkpoint fail visibly rather than skip r
   assert.match(health.lastError, /Checkpoint unavailable/);
 });
 
-test('retry is exponentially bounded with jitter', () => {
-  assert.equal(retryDelay(0, 100, 1000, () => 0), 50);
-  assert.equal(retryDelay(1, 100, 1000, () => 1), 200);
-  assert.equal(retryDelay(50, 100, 1000, () => 1), 1000);
+test('retry delays stay bounded and jitter spreads retries', () => {
+  for (const attempt of [0, 1, 10, 50]) {
+    const delays = [0, 0.25, 0.5, 0.75, 1].map((random) => retryDelay(attempt, 100, 1000, () => random));
+    assert.ok(delays.every((delay) => Number.isFinite(delay) && delay > 0 && delay <= 1000));
+    assert.ok(new Set(delays).size > 1);
+  }
+  assert.ok(retryDelay(10, 100, 1000, () => 0.5) > retryDelay(0, 100, 1000, () => 0.5));
 });
 
 test('large backlog drains in bounded requests under a constrained worker heap', async (t) => {

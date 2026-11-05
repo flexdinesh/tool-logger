@@ -7,7 +7,8 @@ notarization; macOS builds use MyGo's ad hoc signature.
 
 ## Stable
 
-Run `pnpm check:pr` on Linux and macOS, because CI runs no tests. Then tag that main
+Run `pnpm check:full` on Linux, because CI runs no tests. macOS verification is
+optional; report it as not run when unavailable. Then tag that main
 commit `vX.Y.Z` and push the tag. `release.yaml` validates the tag and main ancestry,
 calls `build.yaml`, verifies all assets and creates the release. Both building and
 publishing skip an existing release.

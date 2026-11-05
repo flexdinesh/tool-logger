@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "tsBuildInfoFile": "../../.scratch/typecheck/web-app.tsbuildinfo",
     "baseUrl": ".",
     "paths": { "@/*": ["src/client/*"] },
     "module": "ESNext",

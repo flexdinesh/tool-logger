@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -29,20 +30,68 @@ type appProcess struct {
 	state, endpoint, origin string
 }
 
-func buildProcess(t *testing.T, tags string) string {
+var processBuilds = struct {
+	sync.Mutex
+	directory string
+	binaries  map[string]string
+}{binaries: make(map[string]string)}
+
+func TestMain(m *testing.M) {
+	var err error
+	processBuilds.directory, err = os.MkdirTemp("", "tl-desktop-build-")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	code := m.Run()
+	if err := os.RemoveAll(processBuilds.directory); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		code = 1
+	}
+	os.Exit(code)
+}
+
+// Each target/tag is built once per test process, never reused across checks.
+func buildExecutable(t *testing.T, target, tags string) string {
 	t.Helper()
-	binary := filepath.Join(t.TempDir(), "tool-logger")
+	processBuilds.Lock()
+	defer processBuilds.Unlock()
+	key := target + ":" + tags
+	if binary, ok := processBuilds.binaries[key]; ok {
+		return binary
+	}
+	binary := filepath.Join(processBuilds.directory, fmt.Sprintf("tool-logger-%d", len(processBuilds.binaries)))
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	args := []string{"build", "-o", binary}
 	if tags != "" {
 		args = append(args, "-tags", tags)
 	}
-	args = append(args, ".")
+	args = append(args, target)
 	if output, err := exec.CommandContext(ctx, "go", args...).CombinedOutput(); err != nil {
 		t.Fatalf("build executable: %v: %s", err, output)
 	}
+	processBuilds.binaries[key] = binary
 	return binary
+}
+
+func buildProcess(t *testing.T, tags string) string {
+	t.Helper()
+	return buildExecutable(t, ".", tags)
+}
+
+func copyProcessCLI(t *testing.T, destination string) {
+	t.Helper()
+	data, err := os.ReadFile(buildExecutable(t, "../../../cli", ""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(destination), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(destination, data, 0700); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func startProcess(t *testing.T, binary string, env, args []string) *appProcess {
@@ -54,10 +103,7 @@ func startProcess(t *testing.T, binary string, env, args []string) *appProcess {
 	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 	p := &appProcess{state: filepath.Join(dir, "state"), finished: make(chan error, 1)}
 	p.cli = filepath.Join(dir, "tool-logger")
-	build := exec.Command("go", "build", "-o", p.cli, "../../../cli")
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build CLI: %v: %s", err, output)
-	}
+	copyProcessCLI(t, p.cli)
 	cli := exec.Command(p.cli, "server", "start")
 	cli.Env = append(os.Environ(), "TOOL_LOGGER_STATE_DIR="+p.state)
 	if output, err := cli.CombinedOutput(); err != nil {

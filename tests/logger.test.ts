@@ -115,15 +115,6 @@ test('40 concurrent processes preserve large records without loss or interleavin
   );
 });
 
-test('creates private state directory and file', async (t) => {
-  const f = fixture(t);
-  const result = await f.invoke(event());
-  assert.equal(result.code, 0, result.stderr);
-  assert.equal(statSync(f.directory).mode & 0o777, 0o700);
-  assert.equal(statSync(f.log).mode & 0o777, 0o600);
-  assert.equal(statSync(join(f.directory, 'state.json')).mode & 0o777, 0o600);
-});
-
 test('state preserves the original host home and never rewrites existing state or log bytes', (t) => {
   const f = fixture(t);
   ensureState(f.directory, '/Users/original');
@@ -148,7 +139,7 @@ test('state creation failure is recorded without preventing tool logging', (t) =
   assert.match(JSON.stringify(object(record.metadata).errors), /state.json must be a regular file/);
 });
 
-test('preserves all Codex fields and records collector and transcript metadata', async (t) => {
+test('creates private state and preserves Codex fields, collector and transcript metadata', async (t) => {
   const f = fixture(t);
   const transcript = join(f.temp, 'transcript.jsonl');
   writeFileSync(transcript, 'transcript content stays in its own file\n');
@@ -160,6 +151,9 @@ test('preserves all Codex fields and records collector and transcript metadata',
     TEST_UNRELATED_SECRET: 'do-not-copy-environment',
   });
   assert.equal(result.code, 0, result.stderr);
+  assert.equal(statSync(f.directory).mode & 0o777, 0o700);
+  assert.equal(statSync(f.log).mode & 0o777, 0o600);
+  assert.equal(statSync(join(f.directory, 'state.json')).mode & 0o777, 0o600);
   const stored = records(f.log)[0];
   assert.ok(stored);
   assert.deepEqual(stored.event, payload);

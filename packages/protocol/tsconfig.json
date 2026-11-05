@@ -1,4 +1,5 @@
 {
   "extends": "../../tsconfig.json",
+  "compilerOptions": { "tsBuildInfoFile": "../../.scratch/typecheck/protocol.tsbuildinfo" },
   "include": ["*.ts", "tests/*.ts"]
 }

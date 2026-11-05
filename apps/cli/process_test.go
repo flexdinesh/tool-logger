@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -22,12 +23,48 @@ import (
 	"tool-logger/packages/protocol"
 )
 
+var processBuildDirectory string
+
+func TestMain(m *testing.M) {
+	var err error
+	processBuildDirectory, err = os.MkdirTemp("", "tl-cli-build-")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	code := m.Run()
+	if err := os.RemoveAll(processBuildDirectory); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		code = 1
+	}
+	os.Exit(code)
+}
+
+// Cache only within this test process; later check invocations build current sources.
+var processCLI = sync.OnceValues(func() (string, error) {
+	path := filepath.Join(processBuildDirectory, "tool-logger")
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+	if output, err := exec.CommandContext(ctx, "go", "build", "-o", path, ".").CombinedOutput(); err != nil {
+		return "", fmt.Errorf("build CLI: %w: %s", err, output)
+	}
+	return path, nil
+})
+
 func buildCLI(t *testing.T) string {
 	t.Helper()
+	binary, err := processCLI()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Tests install different desktop companions beside the CLI.
 	path := filepath.Join(t.TempDir(), "tool-logger")
-	command := exec.Command("go", "build", "-o", path, ".")
-	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("build CLI: %v: %s", err, output)
+	data, err := os.ReadFile(binary)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0700); err != nil {
+		t.Fatal(err)
 	}
 	return path
 }
